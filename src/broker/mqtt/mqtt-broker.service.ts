@@ -2,7 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { MqttService, Payload, Subscribe } from '@evva/nest-mqtt';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 import { v4 as uuidv4 } from 'uuid';
-import { Query, QueryPaged } from './mqtt-broker.types';
 import { Broker } from '../broker.interface';
 import {
   BROKER_TOPIC_PREFIXES,
@@ -16,6 +15,7 @@ import {
   EVENT_QUERY_RESOURCE_SINGLE,
   EVENT_USER_INFO_RECEIVED,
 } from '../broker.events';
+import { Query, QueryPaged } from '../../common/query';
 
 @Injectable()
 export class MqttBrokerService implements Broker {
@@ -34,11 +34,9 @@ export class MqttBrokerService implements Broker {
    */
   @Subscribe(BROKER_TOPICS.CQRS_EVENTS)
   handleCQRSEvent(@Payload() payload: any) {
-    this.logger.log(`
-<-- Received subscription event\n
-      topic: ${BROKER_TOPICS.CQRS_EVENTS}
-      data: ${payload ? JSON.stringify(payload) : null}
-    `);
+    this.logger.verbose(
+      `Message received\n\ttopic: ${BROKER_TOPICS.CQRS_EVENTS}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+    );
     this.eventEmitter.emit(EVENT_CQRS_RECEIVED, payload);
   }
 
@@ -50,11 +48,9 @@ export class MqttBrokerService implements Broker {
    */
   @Subscribe(BROKER_TOPICS.ACCESS_PROTOCOL)
   handleAccessProtocolEvent(@Payload() payload: any) {
-    this.logger.log(`
-<-- Received subscription event\n
-      topic: ${BROKER_TOPICS.ACCESS_PROTOCOL}
-      data: ${payload ? JSON.stringify(payload) : null}
-    `);
+    this.logger.verbose(
+      `Message received\n\ttopic: ${BROKER_TOPICS.ACCESS_PROTOCOL}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+    );
     this.eventEmitter.emit(EVENT_ACCESS_PROTOCOL_RECEIVED, payload);
   }
 
@@ -65,14 +61,12 @@ export class MqttBrokerService implements Broker {
    * @private
    */
   @Subscribe(
-    `${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.USER_IN}`,
+    `${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.QUERY_IN}`,
   )
   handleUserEvent(@Payload() payload: any) {
-    this.logger.log(`
-<-- Received subscription event\n
-      topic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.USER_IN}
-      data: ${payload ? JSON.stringify(payload) : null}
-    `);
+    this.logger.verbose(
+      `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.QUERY_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+    );
     this.eventEmitter.emit(EVENT_USER_INFO_RECEIVED, payload);
   }
 
@@ -85,21 +79,16 @@ export class MqttBrokerService implements Broker {
   @OnEvent(EVENT_QUERY_RESOURCE_SINGLE)
   async publishQuery(payload: Query) {
     try {
-      await this.mqttService.publish(
-        BROKER_TOPICS.QUERY_OUT,
-        JSON.stringify({
-          requestId: uuidv4(),
-          resource: payload.res,
-          id: payload.uuid,
-          token: payload.token,
-        }),
+      const data = JSON.stringify({
+        requestId: uuidv4(),
+        resource: payload.res,
+        id: payload.uuid,
+        token: payload.token,
+      });
+      await this.mqttService.publish(BROKER_TOPICS.QUERY_OUT, data);
+      this.logger.debug(
+        `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${data}`,
       );
-      this.logger.debug(`
---> Published query
-      resource: ${payload.res}
-      topic: ${BROKER_TOPICS.QUERY_OUT}
-      data: ${JSON.stringify(payload)}
-      `);
     } catch (err) {
       this.logger.error(`Failed to publish single query: ${err}`);
     }
@@ -114,25 +103,20 @@ export class MqttBrokerService implements Broker {
   @OnEvent(EVENT_QUERY_RESOURCE_PAGED)
   async publishPageQuery(payload: QueryPaged) {
     try {
-      await this.mqttService.publish(
-        BROKER_TOPICS.QUERY_OUT,
-        JSON.stringify({
-          token: payload.token,
-          requestId: payload.uuid || uuidv4(),
-          resource: payload.res,
-          params: {
-            pageOffset: payload.offset,
-            pageLimit: payload.limit,
-            filters: payload.filters,
-          },
-        }),
+      const data = JSON.stringify({
+        token: payload.token,
+        requestId: payload.uuid || uuidv4(),
+        resource: payload.res,
+        params: {
+          pageOffset: payload.offset || 0,
+          pageLimit: payload.limit || 1,
+          filters: payload.filters,
+        },
+      });
+      await this.mqttService.publish(BROKER_TOPICS.QUERY_OUT, data);
+      this.logger.debug(
+        `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${data}`,
       );
-      this.logger.debug(`
---> Published paged-query
-      resource: ${payload.res}
-      topic: ${BROKER_TOPICS.QUERY_OUT}
-      data: ${JSON.stringify(payload)}
-      `);
     } catch (err) {
       this.logger.error(`Failed to publish page query: ${err}`);
     }

@@ -22,11 +22,13 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
           ca: options.certCA,
           key: options.key,
           protocol: 'mqtts',
+          clientId: options.clientId,
           rejectUnauthorized: false,
+          clean: true,
           topicResolver: (varname: string) => {
             switch (varname) {
               case 'userId':
-                return options.userId;
+                return options.clientId;
               default:
                 throw new Error(`Unsupported topic variable: ${varname}`);
             }

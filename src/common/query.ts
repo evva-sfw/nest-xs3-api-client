@@ -1,13 +1,13 @@
-import { BROKER_RESOURCE } from './mqtt-broker.constants';
+import { ResourceType } from './resource';
 
 export type Query = {
-  res: BROKER_RESOURCE;
+  res: ResourceType;
   token: string;
   uuid: string;
 };
 
 export type QueryPaged = {
-  res: BROKER_RESOURCE;
+  res: ResourceType;
   token: string;
   offset?: number;
   limit?: number;

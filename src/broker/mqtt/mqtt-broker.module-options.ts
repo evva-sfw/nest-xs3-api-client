@@ -25,9 +25,9 @@ export interface MqttBrokerModuleOptions {
   key: string;
 
   /**
-   * MQTT user id
+   * MQTT client id
    */
-  userId: string;
+  clientId: string;
 
   /**
    * MQTT session token

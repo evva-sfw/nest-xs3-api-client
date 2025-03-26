@@ -30,15 +30,3 @@ export const BROKER_COMMANDS = Object.freeze({
     'AssignAuthorizationProfileToMediumMapi',
   ASSIGN_PERSON_TO_MEDIUM: 'AssignPersonToMediumMapi',
 });
-
-export type BROKER_RESOURCE =
-  | 'identification-media'
-  | 'authorization-profiles'
-  | 'access-protocol'
-  | 'persons'
-  | 'installation-points'
-  | 'evva-components'
-  | 'calendars'
-  | 'office-modes'
-  | 'time-profiles'
-  | 'zones';

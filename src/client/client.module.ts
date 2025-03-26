@@ -21,7 +21,7 @@ import { MqttBrokerModule } from '../broker/mqtt/mqtt-broker.module';
           cert: options.cert,
           certCA: options.certCA,
           key: options.key,
-          userId: options.userId,
+          clientId: options.clientId,
           token: options.token,
         };
       },
