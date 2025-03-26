@@ -11,8 +11,8 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
 @Global()
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     MqttModule.forRootAsync({
-      imports: [EventEmitterModule.forRoot()],
       inject: [MODULE_OPTIONS_TOKEN],
       useFactory: (options: MqttBrokerModuleOptions) => {
         return {
@@ -33,7 +33,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
                 throw new Error(`Unsupported topic variable: ${varname}`);
             }
           },
-        } as any as MqttModuleOptions;
+        } as MqttModuleOptions;
       },
     }),
   ],
