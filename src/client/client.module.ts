@@ -1,16 +1,18 @@
-import { Global, Module } from '@nestjs/common';
-import { ClientService } from './client.service';
+import { MqttBrokerModule } from '../broker/mqtt/mqtt-broker.module';
+import { QueryModule } from '../query/query.module';
 import {
   ConfigurableModuleClass,
   MODULE_OPTIONS_TOKEN,
 } from './client.module-definition';
 import { ClientModuleOptions } from './client.module-options';
+import { ClientService } from './client.service';
+import { Global, Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { MqttBrokerModule } from '../broker/mqtt/mqtt-broker.module';
 
 @Global()
 @Module({
   imports: [
+    EventEmitterModule.forRoot(),
     MqttBrokerModule.forRootAsync({
       imports: [EventEmitterModule.forRoot()],
       inject: [MODULE_OPTIONS_TOKEN],
@@ -26,6 +28,7 @@ import { MqttBrokerModule } from '../broker/mqtt/mqtt-broker.module';
         };
       },
     }),
+    QueryModule,
   ],
   providers: [ClientService],
   exports: [ClientService, MODULE_OPTIONS_TOKEN],

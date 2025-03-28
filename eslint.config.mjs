@@ -1,9 +1,9 @@
 // @ts-check
 import eslint from '@eslint/js';
-import eslintTS from 'typescript-eslint';
-import { globalIgnores } from 'eslint/config';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import { globalIgnores } from 'eslint/config';
 import globals from 'globals';
+import eslintTS from 'typescript-eslint';
 
 export default eslintTS.config(
   {
@@ -33,6 +33,7 @@ export default eslintTS.config(
       '@typescript-eslint/no-floating-promises': 'warn',
       '@typescript-eslint/no-unsafe-argument': 'warn',
       '@typescript-eslint/no-unused-vars': 'warn',
+      'no-prototype-builtins': 'off',
     },
   },
   eslintConfigPrettier,

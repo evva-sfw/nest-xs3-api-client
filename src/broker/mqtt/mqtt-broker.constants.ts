@@ -20,13 +20,3 @@ export const BROKER_TOPICS = Object.freeze({
   QUERY_OUT: `${BROKER_TOPIC_PREFIXES.BASE}/q`,
   ACCESS_PROTOCOL: `${BROKER_TOPIC_PREFIXES.ACCESS_PROTOCOL}/#`,
 });
-
-export const BROKER_COMMANDS = Object.freeze({
-  LOGIN: 'Login',
-  LOGOUT: 'Logout',
-  REMOTE_DISENGAGE: 'RemoteDisengage',
-  REMOTE_DISENGAGE_PERMANENT: 'RemoteDisengagePermanent',
-  ASSIGN_AUTHORIZATION_PROFILE_TO_MEDIUM:
-    'AssignAuthorizationProfileToMediumMapi',
-  ASSIGN_PERSON_TO_MEDIUM: 'AssignPersonToMediumMapi',
-});

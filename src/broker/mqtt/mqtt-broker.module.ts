@@ -1,17 +1,15 @@
-import { Global, Module } from '@nestjs/common';
-import { MqttBrokerService } from './mqtt-broker.service';
 import {
   ConfigurableModuleClass,
   MODULE_OPTIONS_TOKEN,
 } from './mqtt-broker.module-definition';
-import { MqttModule, MqttModuleOptions } from '@evva/nest-mqtt';
 import { MqttBrokerModuleOptions } from './mqtt-broker.module-options';
-import { EventEmitterModule } from '@nestjs/event-emitter';
+import { MqttBrokerService } from './mqtt-broker.service';
+import { MqttModule, MqttModuleOptions } from '@evva/nest-mqtt';
+import { Global, Module } from '@nestjs/common';
 
 @Global()
 @Module({
   imports: [
-    EventEmitterModule.forRoot(),
     MqttModule.forRootAsync({
       inject: [MODULE_OPTIONS_TOKEN],
       useFactory: (options: MqttBrokerModuleOptions) => {
