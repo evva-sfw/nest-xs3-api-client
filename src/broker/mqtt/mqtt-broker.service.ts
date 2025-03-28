@@ -1,13 +1,11 @@
 import { MODULE_OPTIONS_TOKEN } from '../../client';
-import { Command } from '../../common/command';
+import { Command } from '../../command/command.type';
 import {
-  Query,
-  QueryPaged,
   QueryPagedRequest,
   QueryPagedResponse,
   QueryRequest,
   QueryResponse,
-} from '../../common/query';
+} from '../../query/query.type';
 import {
   EVENT_ACCESS_PROTOCOL_RECEIVED,
   EVENT_COMMAND_SEND,
@@ -27,7 +25,6 @@ import { MqttBrokerModuleOptions } from './mqtt-broker.module-options';
 import { MqttService, Payload, Subscribe } from '@evva/nest-mqtt';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class MqttBrokerService implements Broker {

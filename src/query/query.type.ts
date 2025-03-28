@@ -1,4 +1,4 @@
-import { Resource } from './resource';
+import { Resource } from '../common/resource';
 
 export type Request = {
   requestId: string;

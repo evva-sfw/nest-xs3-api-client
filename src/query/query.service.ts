@@ -16,7 +16,7 @@ import {
   QueryRequest,
   QueryResponse,
   QueryTable,
-} from '../common/query';
+} from './query.type';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -34,20 +34,28 @@ export class QueryService {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
-  // MARK: - Queries
+  /**
+   * Setter for `pageSize` used in auto-pagination mode.
+   *
+   * @param size
+   */
+  setPageSize(size: number) {
+    if (size < 1) {
+      this.logger.error(`Invalid pageSize {${size}}`);
+      return;
+    }
+    this.pageSize = size;
+  }
 
   /**
    * Queries a single resource with an optional timeout.
-   * Blocks and returns a QueryResponse.
+   * Blocks and returns a `QueryResponse`.
    *
    * @param {Query} query
    * @param {number=} timeout
    * @returns {QueryResponse}
    */
-  async querySingle(
-    query: Query,
-    timeout: number = 5000,
-  ): Promise<QueryResponse> {
+  async query(query: Query, timeout: number = 5000): Promise<QueryResponse> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Query failed: not connected to broker');
       return null;
@@ -75,10 +83,10 @@ export class QueryService {
 
   /**
    * Queries a paged resource with an optional timeout.
-   * Blocks and returns a `QueryPagedResponse` array.
+   * Blocks and returns a `QueryPagedResponse` collection.
    *
    * If `limit` or `offset` are not set, the query will auto-paginate
-   * and return all chunked results.
+   * and return all chunked results (`pageSize`).
    *
    * @param {QueryPaged} query
    * @param {number=} timeout
@@ -125,14 +133,12 @@ export class QueryService {
     ]);
   }
 
-  // MARK: - Commands
-
-  // async sendCommand(c: Command) {
-  //   this.eventEmitter.emit(EVENT_COMMAND_SEND, c);
-  // }
-
-  // MARK: - Events
-
+  /**
+   * Event handler for new query responses from broker.
+   *
+   * @param {QueryResponse} response
+   * @protected
+   */
   @OnEvent(EVENT_QUERY_SINGLE_RESPONSE)
   protected onQueryResponse(@Payload() response: QueryResponse) {
     if (this.queryRequests[response.requestId]) {
@@ -141,6 +147,12 @@ export class QueryService {
     }
   }
 
+  /**
+   * Event handler for new paged query responses from broker.
+   *
+   * @param {QueryPagedResponse} response
+   * @protected
+   */
   @OnEvent(EVENT_QUERY_PAGED_RESPONSE)
   protected onQueryPagedResponse(@Payload() response: QueryPagedResponse) {
     if (this.queryRequests[response.requestId]) {
@@ -150,8 +162,13 @@ export class QueryService {
     }
   }
 
-  // MARK: - QueryPaged
-
+  /**
+   * Page handler that aggregates the page results and emits
+   * upcoming page requests.
+   *
+   * @param {QueryPagedResponse} response
+   * @private
+   */
   private handlePage(response: QueryPagedResponse) {
     const query = this.queryRequests[response.requestId];
     if (!query) return;
@@ -159,8 +176,6 @@ export class QueryService {
     query.result.push(response);
 
     if (query.pageOne && query.autoPaginate) {
-      this.logger.debug(`Auto-paginating with size {${this.pageSize}}`);
-
       if (query.filters) {
         query.pageRequests = this.getRemainingPageRequests(
           response.response.filterCount,
@@ -174,6 +189,8 @@ export class QueryService {
     }
 
     if (query.pageRequests.length > 0) {
+      this.logger.debug(`Auto-paginating with pageSize {${this.pageSize}}`);
+
       const r = query.pageRequests.pop();
 
       query.pageHandlers.push(this.handlePage.bind(this) as QueryPageHandler);
@@ -191,6 +208,14 @@ export class QueryService {
     }
   }
 
+  /**
+   * Helper for determining the further needed page requests
+   * based on the set `pageSize`.
+   *
+   * @param {number} total
+   * @returns {QueryPageRequest[]}
+   * @private
+   */
   private getRemainingPageRequests(total: number): QueryPageRequest[] {
     if (total <= this.pageSize) {
       return [];
