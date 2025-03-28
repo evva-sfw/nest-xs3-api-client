@@ -1,21 +1,22 @@
 import {
-  EVENT_COMMAND_SEND,
   EVENT_QUERY_PAGED_REQUEST,
   EVENT_QUERY_SINGLE_REQUEST,
   EVENT_QUERY_SINGLE_RESPONSE,
   EVENT_QUERY_PAGED_RESPONSE,
 } from '../broker/broker.events';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
-import { Command } from '../common/command';
+import { HashTable } from '../common/interface';
 import {
   Query,
   QueryPaged,
-  QueryPagedFilter,
+  QueryPagedRequest,
   QueryPagedResponse,
+  QueryPageHandler,
   QueryPageRequest,
+  QueryRequest,
   QueryResponse,
+  QueryTable,
 } from '../common/query';
-import { Resource } from '../common/resource';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -25,25 +26,8 @@ import { v4 as uuidv4 } from 'uuid';
 export class QueryService {
   private readonly logger = new Logger('QueryService');
 
-  // QuerySingle
-  private resource: Resource;
-
-  // QueryPaged
-  private uuid: string;
+  private queryRequests: HashTable<QueryTable> = {};
   private pageSize = 25;
-  private filters: QueryPagedFilter[];
-  private handlers: ((r: QueryPagedResponse) => void)[];
-  private requests: QueryPageRequest[];
-  private response: QueryPagedResponse;
-  private firstRun: boolean;
-
-  // Resolvers
-  private queryResolver: (
-    value: QueryResponse | PromiseLike<QueryResponse>,
-  ) => void = null;
-  private queryPagedResolver: (
-    value: QueryPagedResponse | PromiseLike<QueryPagedResponse>,
-  ) => void = null;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,
@@ -64,21 +48,25 @@ export class QueryService {
     query: Query,
     timeout: number = 5000,
   ): Promise<QueryResponse> {
-    this.clearState();
-
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Query failed: not connected to broker');
       return null;
     }
-    this.eventEmitter.emit(EVENT_QUERY_SINGLE_REQUEST, query);
+    const request = {
+      requestId: uuidv4(),
+      res: query.res,
+      uuid: query.uuid,
+    } as QueryRequest;
+
+    this.eventEmitter.emit(EVENT_QUERY_SINGLE_REQUEST, request);
 
     return Promise.race([
       new Promise<QueryResponse>((resolver) => {
-        this.queryResolver = resolver;
+        this.queryRequests[request.requestId] = { resolver: resolver };
       }),
       new Promise<null>((res) => {
         setTimeout(() => {
-          this.queryResolver = null;
+          delete this.queryRequests[request.requestId];
           res(null);
         }, timeout);
       }),
@@ -87,38 +75,50 @@ export class QueryService {
 
   /**
    * Queries a paged resource with an optional timeout.
-   * Blocks and returns a QueryPagedResponse.
+   * Blocks and returns a `QueryPagedResponse` array.
+   *
+   * If `limit` or `offset` are not set, the query will auto-paginate
+   * and return all chunked results.
    *
    * @param {QueryPaged} query
    * @param {number=} timeout
-   * @returns {QueryPagedResponse}
+   * @returns {QueryPagedResponse[]}
    */
   async queryPaged(
     query: QueryPaged,
     timeout: number = 5000,
-  ): Promise<QueryPagedResponse> {
-    this.clearState();
+  ): Promise<QueryPagedResponse[]> {
+    if (!this.mqttBrokerService.isConnected()) {
+      this.logger.error('Query failed: not connected to broker');
+      return null;
+    }
+    const request = {
+      requestId: uuidv4(),
+      res: query.res,
+      offset: query.offset || 0,
+      limit: query.limit || this.pageSize,
+      filters: query.filters || [],
+    } as QueryPagedRequest;
 
-    this.uuid = uuidv4();
-    this.resource = query.res;
-    this.filters = query.filters;
+    this.queryRequests[request.requestId] = {
+      resource: query.res,
+      filters: query.filters,
+      autoPaginate: !query.limit && !query.offset,
+      pageHandlers: [this.handlePage.bind(this) as QueryPageHandler],
+      pageRequests: [],
+      pageOne: true,
+      result: [],
+    } as QueryTable;
 
-    query.offset = 0;
-    query.limit = this.pageSize;
-    query.uuid = this.uuid;
-
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-    this.handlers.push(this.handlePage.bind(this));
-
-    this.eventEmitter.emit(EVENT_QUERY_PAGED_REQUEST, query);
+    this.eventEmitter.emit(EVENT_QUERY_PAGED_REQUEST, request);
 
     return Promise.race([
-      new Promise<QueryPagedResponse>((resolver) => {
-        this.queryPagedResolver = resolver;
+      new Promise<QueryPagedResponse[]>((resolver) => {
+        this.queryRequests[request.requestId].resolver = resolver;
       }),
       new Promise<null>((res) => {
         setTimeout(() => {
-          this.queryPagedResolver = null;
+          delete this.queryRequests[request.requestId];
           res(null);
         }, timeout);
       }),
@@ -135,48 +135,59 @@ export class QueryService {
 
   @OnEvent(EVENT_QUERY_SINGLE_RESPONSE)
   protected onQueryResponse(@Payload() response: QueryResponse) {
-    if (this.queryResolver) this.queryResolver(response);
+    if (this.queryRequests[response.requestId]) {
+      this.queryRequests[response.requestId].resolver(response);
+      delete this.queryRequests[response.requestId];
+    }
   }
 
   @OnEvent(EVENT_QUERY_PAGED_RESPONSE)
   protected onQueryPagedResponse(@Payload() response: QueryPagedResponse) {
-    if (this.uuid != response.requestId) {
-      return;
+    if (this.queryRequests[response.requestId]) {
+      const handler =
+        this.queryRequests[response.requestId].pageHandlers?.pop();
+      if (handler) handler(response);
     }
-    const handler = this.handlers.pop();
-    if (handler) handler(response);
   }
 
   // MARK: - QueryPaged
 
-  private handlePage(r: QueryPagedResponse) {
-    if (this.firstRun) {
-      if (this.filters) {
-        this.requests = this.getRemainingPageRequests(r.response.filterCount);
+  private handlePage(response: QueryPagedResponse) {
+    const query = this.queryRequests[response.requestId];
+    if (!query) return;
+
+    query.result.push(response);
+
+    if (query.pageOne && query.autoPaginate) {
+      this.logger.debug(`Auto-paginating with size {${this.pageSize}}`);
+
+      if (query.filters) {
+        query.pageRequests = this.getRemainingPageRequests(
+          response.response.filterCount,
+        );
       } else {
-        this.requests = this.getRemainingPageRequests(r.response.totalCount);
+        query.pageRequests = this.getRemainingPageRequests(
+          response.response.totalCount,
+        );
       }
-      this.firstRun = false;
-      this.response = r;
-    } else {
-      this.response.response.data.push(...r.response.data);
+      query.pageOne = false;
     }
 
-    if (this.requests.length > 0) {
-      const req = this.requests.pop();
+    if (query.pageRequests.length > 0) {
+      const r = query.pageRequests.pop();
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-      this.handlers.push(this.handlePage.bind(this));
+      query.pageHandlers.push(this.handlePage.bind(this) as QueryPageHandler);
 
       this.eventEmitter.emit(EVENT_QUERY_PAGED_REQUEST, {
-        res: this.resource,
-        offset: req.pageOffset,
-        limit: req.pageLimit,
-        filters: this.filters,
-        uuid: this.uuid,
-      } as QueryPaged);
+        requestId: response.requestId,
+        res: query.resource,
+        offset: r.pageOffset,
+        limit: r.pageLimit,
+        filters: query.filters,
+      } as QueryPagedRequest);
     } else {
-      if (this.queryPagedResolver) this.queryPagedResolver(this.response);
+      query.resolver(query.result);
+      delete this.queryRequests[response.requestId];
     }
   }
 
@@ -200,21 +211,5 @@ export class QueryService {
     });
 
     return reqs.reverse();
-  }
-
-  /**
-   * Clears all state variables used for queries.
-   *
-   * @private
-   */
-  private clearState() {
-    this.filters = [];
-    this.handlers = [];
-    this.requests = [];
-    this.response = null;
-    this.firstRun = true;
-
-    this.queryPagedResolver = null;
-    this.queryResolver = null;
   }
 }

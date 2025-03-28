@@ -1,5 +1,9 @@
 import { Resource } from './resource';
 
+export type Request = {
+  requestId: string;
+};
+
 export type Query = {
   res: Resource;
   uuid: string;
@@ -10,7 +14,6 @@ export type QueryPaged = {
   offset?: number;
   limit?: number;
   filters?: QueryPagedFilter[];
-  uuid?: string;
 };
 
 export type QueryPagedFilter = {
@@ -18,6 +21,15 @@ export type QueryPagedFilter = {
   field: string;
   value: any;
 };
+
+export type QueryPageRequest = {
+  pageOffset: number;
+  pageLimit: number;
+};
+
+export type QueryRequest = Query & Request;
+
+export type QueryPagedRequest = QueryPaged & Request;
 
 export type QueryResponse = {
   requestId: string;
@@ -33,7 +45,21 @@ export type QueryPagedResponse = {
   };
 };
 
-export type QueryPageRequest = {
-  pageOffset: number;
-  pageLimit: number;
+export type QueryResolver = (
+  value:
+    | (QueryResponse | PromiseLike<QueryResponse>)
+    | (QueryPagedResponse[] | PromiseLike<QueryPagedResponse[]>),
+) => void;
+
+export type QueryPageHandler = (response: QueryPagedResponse) => void;
+
+export type QueryTable = {
+  resolver: QueryResolver;
+  resource?: Resource;
+  filters?: [];
+  autoPaginate?: boolean;
+  pageHandlers?: QueryPageHandler[];
+  pageRequests?: QueryPageRequest[];
+  pageOne?: boolean;
+  result?: QueryPagedResponse[];
 };

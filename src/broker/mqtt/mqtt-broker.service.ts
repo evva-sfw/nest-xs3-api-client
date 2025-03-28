@@ -3,7 +3,9 @@ import { Command } from '../../common/command';
 import {
   Query,
   QueryPaged,
+  QueryPagedRequest,
   QueryPagedResponse,
+  QueryRequest,
   QueryResponse,
 } from '../../common/query';
 import {
@@ -100,16 +102,16 @@ export class MqttBrokerService implements Broker {
   /**
    * Publishes a single resource query to the broker.
    *
-   * @param {Query} payload
+   * @param {QueryRequest} request
    */
   @OnEvent(EVENT_QUERY_SINGLE_REQUEST)
-  async publishQuery(payload: Query) {
+  async publishQuery(request: QueryRequest) {
     try {
       const data = {
         token: this.moduleOptions.token,
-        requestId: uuidv4(),
-        resource: payload.res,
-        id: payload.uuid,
+        requestId: request.requestId,
+        resource: request.res,
+        id: request.uuid,
       };
       const dataStr = JSON.stringify(data);
 
@@ -126,26 +128,26 @@ export class MqttBrokerService implements Broker {
   /**
    * Publishes a paginated resource query to the broker.
    *
-   * @param {QueryPaged} payload
+   * @param {QueryPagedRequest} request
    */
   @OnEvent(EVENT_QUERY_PAGED_REQUEST)
-  async publishPageQuery(payload: QueryPaged) {
+  async publishPageQuery(request: QueryPagedRequest) {
     try {
       const data = {
         token: this.moduleOptions.token,
-        requestId: payload.uuid || uuidv4(),
-        resource: payload.res,
+        requestId: request.requestId,
+        resource: request.res,
         params: {
-          pageOffset: payload.offset || 0,
-          pageLimit: payload.limit || 1,
-          filters: payload.filters,
+          pageOffset: request.offset,
+          pageLimit: request.limit,
+          filters: request.filters,
         },
       };
       const dataStr = JSON.stringify(data);
 
       await this.mqttService.publish(BROKER_TOPICS.QUERY_OUT, dataStr);
 
-      this.logger.debug(
+      this.logger.verbose(
         `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
       );
     } catch (err) {
