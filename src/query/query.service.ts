@@ -27,7 +27,7 @@ export class QueryService {
   private readonly logger = new Logger('QueryService');
 
   private queryRequests: HashTable<QueryTable> = {};
-  private pageSize = 25;
+  private pageSize = 50;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,

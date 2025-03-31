@@ -8,8 +8,9 @@ import {
 } from '../../query/query.type';
 import {
   EVENT_ACCESS_PROTOCOL_RECEIVED,
-  EVENT_COMMAND_SEND,
-  EVENT_CQRS_RECEIVED,
+  EVENT_CQRS_REQUEST,
+  EVENT_CQRS_RESPONSE,
+  EVENT_ERROR_RESPONSE,
   EVENT_QUERY_PAGED_REQUEST,
   EVENT_QUERY_PAGED_RESPONSE,
   EVENT_QUERY_SINGLE_REQUEST,
@@ -57,7 +58,7 @@ export class MqttBrokerService implements Broker {
     this.logger.verbose(
       `Message received\n\ttopic: ${BROKER_TOPICS.CQRS_EVENTS}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
     );
-    this.eventEmitter.emit(EVENT_CQRS_RECEIVED, payload);
+    this.eventEmitter.emit(EVENT_CQRS_RESPONSE, payload);
   }
 
   /**
@@ -97,6 +98,22 @@ export class MqttBrokerService implements Broker {
   }
 
   /**
+   * Subscription handler for query error responses.
+   *
+   * @param {object} payload
+   * @private
+   */
+  @Subscribe(
+    `${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}`,
+  )
+  handleQueryErrorEvent(@Payload() payload: any) {
+    this.logger.verbose(
+      `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+    );
+    this.eventEmitter.emit(EVENT_ERROR_RESPONSE, payload);
+  }
+
+  /**
    * Publishes a single resource query to the broker.
    *
    * @param {QueryRequest} request
@@ -114,7 +131,7 @@ export class MqttBrokerService implements Broker {
 
       await this.mqttService.publish(BROKER_TOPICS.QUERY_OUT, dataStr);
 
-      this.logger.debug(
+      this.logger.verbose(
         `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
       );
     } catch (err) {
@@ -157,12 +174,18 @@ export class MqttBrokerService implements Broker {
    *
    * @param {Command} payload
    */
-  @OnEvent(EVENT_COMMAND_SEND)
+  @OnEvent(EVENT_CQRS_REQUEST)
   async publishCommand(payload: Command) {
     try {
+      const dataStr = JSON.stringify(payload.data);
+
       await this.mqttService.publish(
         `${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}`,
-        payload.data,
+        dataStr,
+      );
+
+      this.logger.verbose(
+        `Message published\n\ttopic: ${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}\n\tdata: ${dataStr}`,
       );
     } catch (err) {
       this.logger.error(`Failed to publish command: ${err}`);

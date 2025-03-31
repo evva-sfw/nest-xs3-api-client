@@ -1,4 +1,5 @@
 import { MqttBrokerModule } from '../broker/mqtt/mqtt-broker.module';
+import { CommandModule } from '../command/command.module';
 import { QueryModule } from '../query/query.module';
 import {
   ConfigurableModuleClass,
@@ -29,6 +30,7 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
       },
     }),
     QueryModule,
+    CommandModule,
   ],
   providers: [ClientService],
   exports: [ClientService, MODULE_OPTIONS_TOKEN],
