@@ -54,12 +54,13 @@ export type QueryResolver = (
 export type QueryPageHandler = (response: QueryPagedResponse) => void;
 
 export type QueryTable = {
-  resolver: QueryResolver;
-  resource?: Resource;
-  filters?: [];
+  task: QueryResolver;
+  taskTimeout?: NodeJS.Timeout;
   autoPaginate?: boolean;
   pageHandlers?: QueryPageHandler[];
   pageRequests?: QueryPageRequest[];
   pageOne?: boolean;
+  resource?: Resource;
+  filters?: [];
   result?: QueryPagedResponse[];
 };

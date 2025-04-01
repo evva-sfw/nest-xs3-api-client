@@ -15,7 +15,6 @@ import { EventEmitterModule } from '@nestjs/event-emitter';
   imports: [
     EventEmitterModule.forRoot(),
     MqttBrokerModule.forRootAsync({
-      imports: [EventEmitterModule.forRoot()],
       inject: [MODULE_OPTIONS_TOKEN],
       useFactory: (options: ClientModuleOptions) => {
         return {

@@ -35,6 +35,15 @@ export class QueryService {
   ) {}
 
   /**
+   * Getter for `pageSize` used in auto-pagination mode.
+   *
+   * @returns {number}
+   */
+  getPageSize(): number {
+    return this.pageSize;
+  }
+
+  /**
    * Setter for `pageSize` used in auto-pagination mode.
    *
    * @param size
@@ -70,12 +79,12 @@ export class QueryService {
 
     return Promise.race([
       new Promise<QueryResponse>((resolver) => {
-        this.queryRequests[request.requestId] = { resolver: resolver };
+        this.queryRequests[request.requestId] = { task: resolver };
       }),
-      new Promise<null>((res) => {
-        setTimeout(() => {
+      new Promise<null>((resolver) => {
+        this.queryRequests[request.requestId].taskTimeout = setTimeout(() => {
           delete this.queryRequests[request.requestId];
-          res(null);
+          resolver(null);
         }, timeout);
       }),
     ]);
@@ -122,12 +131,12 @@ export class QueryService {
 
     return Promise.race([
       new Promise<QueryPagedResponse[]>((resolver) => {
-        this.queryRequests[request.requestId].resolver = resolver;
+        this.queryRequests[request.requestId].task = resolver;
       }),
-      new Promise<null>((res) => {
-        setTimeout(() => {
+      new Promise<null>((resolver) => {
+        this.queryRequests[request.requestId].taskTimeout = setTimeout(() => {
           delete this.queryRequests[request.requestId];
-          res(null);
+          resolver(null);
         }, timeout);
       }),
     ]);
@@ -142,7 +151,8 @@ export class QueryService {
   @OnEvent(EVENT_QUERY_SINGLE_RESPONSE)
   protected onQueryResponse(@Payload() response: QueryResponse) {
     if (this.queryRequests[response.requestId]) {
-      this.queryRequests[response.requestId].resolver(response);
+      this.queryRequests[response.requestId].task(response);
+      clearTimeout(this.queryRequests[response.requestId].taskTimeout);
       delete this.queryRequests[response.requestId];
     }
   }
@@ -203,7 +213,8 @@ export class QueryService {
         filters: query.filters,
       } as QueryPagedRequest);
     } else {
-      query.resolver(query.result);
+      query.task(query.result);
+      clearTimeout(this.queryRequests[response.requestId].taskTimeout);
       delete this.queryRequests[response.requestId];
     }
   }
@@ -217,7 +228,7 @@ export class QueryService {
    * @private
    */
   private getRemainingPageRequests(total: number): QueryPageRequest[] {
-    if (total <= this.pageSize) {
+    if (!total || total <= this.pageSize) {
       return [];
     }
     const reqs: QueryPageRequest[] = [];
@@ -230,11 +241,12 @@ export class QueryService {
         pageLimit: this.pageSize,
       });
     }
-    reqs.push({
-      pageOffset: numPages * this.pageSize,
-      pageLimit: remainder,
-    });
-
+    if (remainder > 0) {
+      reqs.push({
+        pageOffset: numPages * this.pageSize,
+        pageLimit: remainder,
+      });
+    }
     return reqs.reverse();
   }
 }
