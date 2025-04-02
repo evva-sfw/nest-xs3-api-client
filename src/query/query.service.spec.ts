@@ -51,6 +51,13 @@ describe('QueryService', () => {
 
       expect(queryService.getPageSize()).toBe(size);
     });
+
+    it('should return on faulty param', () => {
+      queryService.setPageSize(117);
+      queryService.setPageSize(-1);
+
+      expect(queryService.getPageSize()).toBe(117);
+    });
   });
 
   describe('query()', () => {

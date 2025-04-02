@@ -88,6 +88,9 @@
             "json",
             "ts"
         ],
+        "modulePathIgnorePatterns": [
+            "src/index.ts"
+        ],
         "rootDir": "src",
         "testRegex": ".*\\.spec\\.ts$",
         "transform": {

@@ -118,7 +118,7 @@ export class MqttBrokerService implements Broker {
    *
    * @param {QueryRequest} request
    */
-  @OnEvent(EVENT_QUERY_SINGLE_REQUEST)
+  @OnEvent(EVENT_QUERY_SINGLE_REQUEST, { async: true })
   async publishQuery(request: QueryRequest) {
     try {
       const data = {
@@ -144,7 +144,7 @@ export class MqttBrokerService implements Broker {
    *
    * @param {QueryPagedRequest} request
    */
-  @OnEvent(EVENT_QUERY_PAGED_REQUEST)
+  @OnEvent(EVENT_QUERY_PAGED_REQUEST, { async: true })
   async publishPageQuery(request: QueryPagedRequest) {
     try {
       const data = {
@@ -174,7 +174,7 @@ export class MqttBrokerService implements Broker {
    *
    * @param {CommandRequest} payload
    */
-  @OnEvent(EVENT_CQRS_REQUEST)
+  @OnEvent(EVENT_CQRS_REQUEST, { async: true })
   async publishCommand(payload: CommandRequest) {
     try {
       const dataStr = JSON.stringify(payload.data);
