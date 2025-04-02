@@ -1,5 +1,5 @@
 import { MODULE_OPTIONS_TOKEN } from '../../client';
-import { Command } from '../../command/command.type';
+import { CommandRequest } from '../../command/command';
 import {
   QueryPagedRequest,
   QueryPagedResponse,
@@ -172,10 +172,10 @@ export class MqttBrokerService implements Broker {
   /**
    * Publishes a CQRS command to the broker.
    *
-   * @param {Command} payload
+   * @param {CommandRequest} payload
    */
   @OnEvent(EVENT_CQRS_REQUEST)
-  async publishCommand(payload: Command) {
+  async publishCommand(payload: CommandRequest) {
     try {
       const dataStr = JSON.stringify(payload.data);
 

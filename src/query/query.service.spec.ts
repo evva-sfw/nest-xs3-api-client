@@ -93,21 +93,16 @@ describe('QueryService', () => {
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
-      const asyncEvent = new Promise<string>((resolve) => {
-        eventEmitter.on(EVENT_QUERY_SINGLE_REQUEST, (payload: QueryRequest) => {
-          resolve(payload.requestId);
+      eventEmitter.on(EVENT_QUERY_SINGLE_REQUEST, (payload: QueryRequest) => {
+        eventEmitter.emit(EVENT_QUERY_SINGLE_RESPONSE, {
+          requestId: payload.requestId,
+          response: { foo: 'bar' },
         });
       });
-      const query = queryService.query({
+      const result = await queryService.query({
         res: 'evva-components',
         uuid: '7950ed5a-ddc1-4033-ac11-3487dac8cf3b',
       });
-      const requestId = await asyncEvent;
-      await eventEmitter.emitAsync(EVENT_QUERY_SINGLE_RESPONSE, {
-        requestId: requestId,
-        response: { foo: 'bar' },
-      });
-      const result = await query;
 
       expect(result.response['foo']).toBe('bar');
     });
@@ -183,16 +178,14 @@ describe('QueryService', () => {
       eventEmitter.on(
         EVENT_QUERY_PAGED_REQUEST,
         (payload: QueryPagedRequest) => {
-          setTimeout(() => {
-            eventEmitter.emit(EVENT_QUERY_PAGED_RESPONSE, {
-              requestId: payload.requestId,
-              response: {
-                data: [{ foo: 'bar' }],
-                filteredCount: 1,
-                totalCount: 1,
-              },
-            });
-          }, 10);
+          eventEmitter.emit(EVENT_QUERY_PAGED_RESPONSE, {
+            requestId: payload.requestId,
+            response: {
+              data: [{ foo: 'bar' }],
+              filteredCount: 1,
+              totalCount: 1,
+            },
+          });
         },
       );
       const result = await queryService.queryPaged({
@@ -212,16 +205,14 @@ describe('QueryService', () => {
       eventEmitter.on(
         EVENT_QUERY_PAGED_REQUEST,
         (payload: QueryPagedRequest) => {
-          setTimeout(() => {
-            eventEmitter.emit(EVENT_QUERY_PAGED_RESPONSE, {
-              requestId: payload.requestId,
-              response: {
-                data: [{ foo: 'bar' }],
-                filteredCount: 3,
-                totalCount: 3,
-              },
-            });
-          }, 10);
+          eventEmitter.emit(EVENT_QUERY_PAGED_RESPONSE, {
+            requestId: payload.requestId,
+            response: {
+              data: [{ foo: 'bar' }],
+              filteredCount: 3,
+              totalCount: 3,
+            },
+          });
         },
       );
       const result = await queryService.queryPaged({

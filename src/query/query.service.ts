@@ -148,7 +148,7 @@ export class QueryService {
    * @param {QueryResponse} response
    * @protected
    */
-  @OnEvent(EVENT_QUERY_SINGLE_RESPONSE)
+  @OnEvent(EVENT_QUERY_SINGLE_RESPONSE, { async: true })
   protected onQueryResponse(@Payload() response: QueryResponse) {
     if (this.queryRequests[response.requestId]) {
       this.queryRequests[response.requestId].task(response);
@@ -163,7 +163,7 @@ export class QueryService {
    * @param {QueryPagedResponse} response
    * @protected
    */
-  @OnEvent(EVENT_QUERY_PAGED_RESPONSE)
+  @OnEvent(EVENT_QUERY_PAGED_RESPONSE, { async: true })
   protected onQueryPagedResponse(@Payload() response: QueryPagedResponse) {
     if (this.queryRequests[response.requestId]) {
       const handler =

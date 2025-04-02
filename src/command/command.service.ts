@@ -3,7 +3,7 @@ import {
   EVENT_CQRS_RESPONSE,
 } from '../broker/broker.events';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
-import { Command } from './command.type';
+import { CommandRequest, CommandResolver, CommandResponse } from './command';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -12,7 +12,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 export class CommandService {
   private readonly logger = new Logger('CommandService');
 
-  private resolver: (value: void | PromiseLike<void>) => void;
+  private resolver: CommandResolver;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,
@@ -24,17 +24,17 @@ export class CommandService {
    *
    * @param {string} profileId
    * @param {string} mediumId
-   * @returns {void}
+   * @returns {CommandResponse}
    */
   async assignAuthorizationProfileToMedium(
     profileId: string,
     mediumId: string,
-  ): Promise<void> {
+  ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Command failed: not connected to broker');
       return null;
     }
-    return new Promise((resolver) => {
+    return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
 
       this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
@@ -43,7 +43,7 @@ export class CommandService {
           authorizationProfileId: profileId,
           id: mediumId,
         },
-      } as Command);
+      } as CommandRequest);
     });
   }
 
@@ -52,17 +52,17 @@ export class CommandService {
    *
    * @param {string} personId
    * @param {string} mediumId
-   * @returns {void}
+   * @returns {CommandResponse}
    */
   async assignPersonToMedium(
     personId: string,
     mediumId: string,
-  ): Promise<void> {
+  ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Command failed: not connected to broker');
       return null;
     }
-    return new Promise((resolver) => {
+    return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
 
       this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
@@ -71,7 +71,7 @@ export class CommandService {
           personId: personId,
           id: mediumId,
         },
-      } as Command);
+      } as CommandRequest);
     });
   }
 
@@ -80,17 +80,17 @@ export class CommandService {
    *
    * @param {string} installationPointId
    * @param {boolean} extended
-   * @returns {void}
+   * @returns {CommandResponse}
    */
   async remoteDisengage(
     installationPointId: string,
     extended: boolean,
-  ): Promise<void> {
+  ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Command failed: not connected to broker');
       return null;
     }
-    return new Promise((resolver) => {
+    return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
 
       this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
@@ -99,7 +99,7 @@ export class CommandService {
           installationPointId: installationPointId,
           extended: extended,
         },
-      } as Command);
+      } as CommandRequest);
     });
   }
 
@@ -108,17 +108,17 @@ export class CommandService {
    *
    * @param {string} installationPointId
    * @param {boolean} enable
-   * @returns {void}
+   * @returns {CommandResponse}
    */
   async remoteDisengagePermanent(
     installationPointId: string,
     enable: boolean,
-  ): Promise<void> {
+  ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Command failed: not connected to broker');
       return null;
     }
-    return new Promise((resolver) => {
+    return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
 
       this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
@@ -127,7 +127,7 @@ export class CommandService {
           installationPointId: installationPointId,
           enable: enable,
         },
-      } as Command);
+      } as CommandRequest);
     });
   }
 
@@ -137,10 +137,10 @@ export class CommandService {
    * @param {any} response
    * @protected
    */
-  @OnEvent(EVENT_CQRS_RESPONSE)
-  protected onCommandResponse(@Payload() response: any) {
+  @OnEvent(EVENT_CQRS_RESPONSE, { async: true })
+  protected onCommandResponse(@Payload() response: CommandResponse) {
     if (this.resolver) {
-      this.resolver();
+      this.resolver(response);
       this.resolver = null;
     }
   }
