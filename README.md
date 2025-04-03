@@ -2,97 +2,110 @@
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+# Nest XS3 Api Client
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+[![NPM Version](https://img.shields.io/npm/v/%40evva%2Fnest-mqtt)](https://www.npmjs.com/package/@evva/nest-mqtt)
+[![NPM Downloads](https://img.shields.io/npm/dy/%40evva%2Fnest-mqtt)](https://www.npmjs.com/package/@evva/nest-mqtt)
+![NPM Unpacked Size (with version)](https://img.shields.io/npm/unpacked-size/%40evva%2Fnest-mqtt/latest)
+![GitHub last commit](https://img.shields.io/github/last-commit/evva-sfw/nest-mqtt)
+[![GitHub branch check runs](https://img.shields.io/github/check-runs/evva-sfw/nest-mqtt/main)]([URL](https://github.com/evva-sfw/nest-mqtt/actions))
+[![EVVA License](https://img.shields.io/badge/license-EVVA_License-yellow.svg?color=fce500&logo=data:image/svg+xml;base64,PCEtLSBHZW5lcmF0ZWQgYnkgSWNvTW9vbi5pbyAtLT4KPHN2ZyB2ZXJzaW9uPSIxLjEiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgd2lkdGg9IjY0MCIgaGVpZ2h0PSIxMDI0IiB2aWV3Qm94PSIwIDAgNjQwIDEwMjQiPgo8ZyBpZD0iaWNvbW9vbi1pZ25vcmUiPgo8L2c+CjxwYXRoIGZpbGw9IiNmY2U1MDAiIGQ9Ik02MjIuNDIzIDUxMS40NDhsLTMzMS43NDYtNDY0LjU1MmgtMjg4LjE1N2wzMjkuODI1IDQ2NC41NTItMzI5LjgyNSA0NjYuNjY0aDI3NS42MTJ6Ij48L3BhdGg+Cjwvc3ZnPgo=)](LICENSE)
+
+## Install
+
+```sh
+$ npm i @evva/nest-xs3-api-client
+```
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Client implementation for the Xesar 3 MQTT api interface.
 
-## Project setup
-
+## Build & Package
 ```bash
-$ npm install
+# Nest Build
+$ nest build
 ```
 
-## Compile and run the project
+## Usage
 
-```bash
-# development
-$ npm run start
+### Import module
 
-# watch mode
-$ npm run start:dev
+```ts
+import { ClientService } from '@evva/nest-xs3-api-client';
 
-# production mode
-$ npm run start:prod
+@Module({
+  imports: [
+    ClientModule.forRootAsync({
+      imports: [],
+      inject: [],
+      useFactory: () => {
+        const cert = fs.readFileSync('conf/cert.pem', 'utf-8');
+        const certCA = fs.readFileSync('conf/cert_ca.pem', 'utf-8');
+        const key = fs.readFileSync('conf/pk.pem', 'utf-8');
+
+        return {
+          host: '127.0.0.1',
+          port: 1883,
+          cert: cert,
+          certCA: certCA,
+          key: key,
+          clientId: 'clientId',
+          token: 'token',
+        };
+      },
+    }),
+  ],
+  providers: [AppService],
+})
+export class AppModule {}
+```
+### Query results
+
+```typescript
+import { ClientService } from '@evva/nest-xs3-api-client';
+
+@Injectable()
+export class AppService {
+  constructor(private readonly clientService: ClientService) {}
+
+  async queryComponents() {
+    let result = await this.clientService.queryPaged({
+      res: 'evva-components',
+      limit: 5,
+      offset: 0,
+      filters: [
+        {
+          type: 'eq',
+          field: 'status',
+          value: 'Synced',
+        },
+      ],
+    });
+  }
+}
 ```
 
-## Run tests
+> You can auto-paginate all results by omitting the `limit` and `offset` properties.
 
-```bash
-# unit tests
-$ npm run test
+### Execute commands
 
-# e2e tests
-$ npm run test:e2e
+```typescript
+import { ClientService } from '@evva/nest-xs3-api-client';
 
-# test coverage
-$ npm run test:cov
+@Injectable()
+export class AppService {
+  constructor(private readonly clientService: ClientService) {}
+
+  async remoteDisengage() {
+    let result = await this.clientService.remoteDisengageCommand(
+      'a034bfda-c569-49a0-a3ba-d438d65eeb34',
+      false,
+    );
+  }
+}
 ```
-
-## Deployment
-
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Proprietary
