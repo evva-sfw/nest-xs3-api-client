@@ -3,6 +3,8 @@ on:
   pull_request:
     types:
       - closed
+permissions:
+  contents: read
 jobs:
   cache_cleanup:
     name: Clean up cache

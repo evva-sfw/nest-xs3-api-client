@@ -3,6 +3,7 @@
 /node_modules
 /build
 /conf
+*.tgz
 
 # Logs
 logs
