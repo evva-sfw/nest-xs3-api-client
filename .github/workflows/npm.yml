@@ -4,6 +4,8 @@ on:
     branches: [ 'main' ]
   pull_request:
     branches: [ 'main' ]
+permissions:
+  contents: read
 jobs:
   npm_check-package-sync:
     runs-on: ubuntu-latest
