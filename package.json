@@ -2,7 +2,7 @@
     "name": "@evva/nest-xs3-api-client",
     "version": "0.0.1",
     "description": "",
-    "private": true,
+    "private": false,
     "author": "EVVA Sicherheitstechnologie GmbH",
     "license": "SEE LICENSE IN <LICENSE>",
     "scripts": {
