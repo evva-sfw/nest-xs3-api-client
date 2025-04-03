@@ -62,6 +62,8 @@ export class AppModule {}
 ```
 ### Query results
 
+Query specific resources from the Xesar API with support for pagination and filters. 
+
 ```typescript
 import { ClientService } from '@evva/nest-xs3-api-client';
 
@@ -88,7 +90,24 @@ export class AppService {
 
 > You can auto-paginate all results by omitting the `limit` and `offset` properties.
 
+A few of the supported resources are:
+
+```typescript
+export type Resource =
+  | 'identification-media'
+  | 'authorization-profiles'
+  | 'access-protocol'
+  | 'persons'
+  | 'installation-points'
+  | 'evva-components'
+  | 'office-modes'
+  | 'time-profiles'
+  | 'zones';
+```
+
 ### Execute commands
+
+Execute specific CQRS commands on the Xesar API.
 
 ```typescript
 import { ClientService } from '@evva/nest-xs3-api-client';
