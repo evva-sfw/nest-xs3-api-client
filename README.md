@@ -35,57 +35,44 @@ $ nest build
 import { ClientService } from '@evva/nest-xs3-api-client';
 
 @Module({
-  imports: [
-    ClientModule.forRootAsync({
-      imports: [],
-      inject: [],
-      useFactory: () => {
-        const cert = fs.readFileSync('conf/cert.pem', 'utf-8');
-        const certCA = fs.readFileSync('conf/cert_ca.pem', 'utf-8');
-        const key = fs.readFileSync('conf/pk.pem', 'utf-8');
-
-        return {
-          host: '127.0.0.1',
-          port: 1883,
-          cert: cert,
-          certCA: certCA,
-          key: key,
-          clientId: 'clientId',
-          token: 'token',
-        };
-      },
-    }),
-  ],
+  imports: [ClientModule],
   providers: [AppService],
 })
 export class AppModule {}
 ```
+### Connect 
+
+Connect to the broker by passing connect options.
+
+```typescript
+await this.clientService.connect({
+  host: 'host',
+  port: 1883,
+  cert: 'cert',
+  certCA: 'certCA',
+  key: 'key',
+  clientId: 'clientId',
+  token: 'token',
+} as ClientConnectOptions);
+```
+
 ### Query results
 
 Query specific resources from the Xesar API with support for pagination and filters. 
 
 ```typescript
-import { ClientService } from '@evva/nest-xs3-api-client';
-
-@Injectable()
-export class AppService {
-  constructor(private readonly clientService: ClientService) {}
-
-  async queryComponents() {
-    let result = await this.clientService.queryPaged({
-      res: 'evva-components',
-      limit: 5,
-      offset: 0,
-      filters: [
-        {
-          type: 'eq',
-          field: 'status',
-          value: 'Synced',
-        },
-      ],
-    });
-  }
-}
+let result = await this.clientService.queryPaged({
+  res: 'evva-components',
+  limit: 5,
+  offset: 0,
+  filters: [
+    {
+      type: 'eq',
+      field: 'status',
+      value: 'Synced',
+    },
+  ],
+});
 ```
 
 > You can auto-paginate all results by omitting the `limit` and `offset` properties.
@@ -110,19 +97,10 @@ export type Resource =
 Execute specific CQRS commands on the Xesar API.
 
 ```typescript
-import { ClientService } from '@evva/nest-xs3-api-client';
-
-@Injectable()
-export class AppService {
-  constructor(private readonly clientService: ClientService) {}
-
-  async remoteDisengage() {
-    let result = await this.clientService.remoteDisengageCommand(
-      'a034bfda-c569-49a0-a3ba-d438d65eeb34',
-      false,
-    );
-  }
-}
+let result = await this.clientService.remoteDisengageCommand(
+  'a034bfda-c569-49a0-a3ba-d438d65eeb34',
+  false,
+);
 ```
 
 ## License

@@ -1,4 +1,3 @@
-import { MODULE_OPTIONS_TOKEN } from '../../client';
 import { CommandRequest } from '../../command/command';
 import {
   QueryPagedRequest,
@@ -17,33 +16,77 @@ import {
   EVENT_QUERY_SINGLE_RESPONSE,
 } from '../broker.events';
 import { Broker } from '../broker.interface';
+import { MqttBrokerConnectOptions } from './mqtt-broker-connect.options';
 import {
   BROKER_TOPIC_PREFIXES,
   BROKER_TOPIC_SUFFIXES,
   BROKER_TOPICS,
 } from './mqtt-broker.constants';
-import { MqttBrokerModuleOptions } from './mqtt-broker.module-options';
-import { MqttService, Payload, Subscribe } from '@evva/nest-mqtt';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import {
+  MqttConnectOptions,
+  MqttService,
+  Payload,
+  Subscribe,
+} from '@evva/nest-mqtt';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class MqttBrokerService implements Broker {
   private readonly logger = new Logger('MqttBrokerService');
+  private options: MqttBrokerConnectOptions;
 
   constructor(
     private readonly mqttService: MqttService,
     private readonly eventEmitter: EventEmitter2,
-    @Inject(MODULE_OPTIONS_TOKEN)
-    private readonly moduleOptions: MqttBrokerModuleOptions,
   ) {}
+
+  /**
+   * Connects to the MQTT broker.
+   *
+   * @param {MqttBrokerConnectOptions} options
+   * @throws
+   */
+  public async connect(options: MqttBrokerConnectOptions) {
+    this.options = options;
+
+    await this.mqttService.connect({
+      host: options.host,
+      port: options.port,
+      cert: options.cert,
+      ca: options.certCA,
+      key: options.key,
+      protocol: 'mqtts',
+      clientId: options.clientId,
+      rejectUnauthorized: false,
+      autoSubscribe: true,
+      clean: true,
+      topicResolver: (varname: string) => {
+        switch (varname) {
+          case 'userId':
+            return options.clientId;
+          default:
+            throw new Error(`Unsupported topic variable: ${varname}`);
+        }
+      },
+    } as MqttConnectOptions);
+  }
+
+  /**
+   * Disconnects from the MQTT broker.
+   *
+   * @throws
+   */
+  public async disconnect() {
+    return this.mqttService.disconnect();
+  }
 
   /**
    * Returns if the current client is connected.
    *
    * @returns {boolean}
    */
-  isConnected(): boolean {
+  public isConnected(): boolean {
     return this.mqttService.getClient()?.connected || false;
   }
 
@@ -54,7 +97,7 @@ export class MqttBrokerService implements Broker {
    * @private
    */
   @Subscribe(BROKER_TOPICS.CQRS_EVENTS)
-  handleCQRSEvent(@Payload() payload: object) {
+  public handleCQRSEvent(@Payload() payload: object) {
     this.logger.verbose(
       `Message received\n\ttopic: ${BROKER_TOPICS.CQRS_EVENTS}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
     );
@@ -68,7 +111,7 @@ export class MqttBrokerService implements Broker {
    * @private
    */
   @Subscribe(BROKER_TOPICS.ACCESS_PROTOCOL)
-  handleAccessProtocolEvent(@Payload() payload: object) {
+  public handleAccessProtocolEvent(@Payload() payload: object) {
     this.logger.verbose(
       `Message received\n\ttopic: ${BROKER_TOPICS.ACCESS_PROTOCOL}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
     );
@@ -84,7 +127,7 @@ export class MqttBrokerService implements Broker {
   @Subscribe(
     `${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.QUERY_IN}`,
   )
-  handleQueryResponseEvent(
+  public handleQueryResponseEvent(
     @Payload() payload: QueryResponse | QueryPagedResponse,
   ) {
     this.logger.verbose(
@@ -106,7 +149,7 @@ export class MqttBrokerService implements Broker {
   @Subscribe(
     `${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}`,
   )
-  handleQueryErrorEvent(@Payload() payload: any) {
+  public handleQueryErrorEvent(@Payload() payload: any) {
     this.logger.verbose(
       `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
     );
@@ -119,10 +162,10 @@ export class MqttBrokerService implements Broker {
    * @param {QueryRequest} request
    */
   @OnEvent(EVENT_QUERY_SINGLE_REQUEST, { async: true })
-  async publishQuery(request: QueryRequest) {
+  public async publishQuery(request: QueryRequest) {
     try {
       const data = {
-        token: this.moduleOptions.token,
+        token: this.options.token,
         requestId: request.requestId,
         resource: request.res,
         id: request.uuid,
@@ -145,10 +188,10 @@ export class MqttBrokerService implements Broker {
    * @param {QueryPagedRequest} request
    */
   @OnEvent(EVENT_QUERY_PAGED_REQUEST, { async: true })
-  async publishPageQuery(request: QueryPagedRequest) {
+  public async publishPageQuery(request: QueryPagedRequest) {
     try {
       const data = {
-        token: this.moduleOptions.token,
+        token: this.options.token,
         requestId: request.requestId,
         resource: request.res,
         params: {
@@ -175,7 +218,7 @@ export class MqttBrokerService implements Broker {
    * @param {CommandRequest} payload
    */
   @OnEvent(EVENT_CQRS_REQUEST, { async: true })
-  async publishCommand(payload: CommandRequest) {
+  public async publishCommand(payload: CommandRequest) {
     try {
       const dataStr = JSON.stringify(payload.data);
 

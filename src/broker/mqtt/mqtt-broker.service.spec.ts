@@ -40,9 +40,12 @@ describe('MqttBrokerService', () => {
 
     eventEmitter = await moduleRef.resolve(EventEmitter2);
     mqttBrokerService = await moduleRef.resolve(MqttBrokerService);
+
+    await mockConnect();
   });
 
   afterEach(async () => {
+    await mqttBrokerService.disconnect();
     await moduleRef.close();
   });
 
@@ -200,6 +203,18 @@ describe('MqttBrokerService', () => {
       expect(await promise).toBe(`${BROKER_TOPIC_PREFIXES.CMD}/${type}`);
     });
   });
+
+  const mockConnect = async () => {
+    await mqttBrokerService.connect({
+      host: '',
+      port: 0,
+      token: '',
+      cert: '',
+      certCA: '',
+      key: '',
+      clientId: '',
+    });
+  };
 
   const mockFactory = (token: InjectionToken) => {
     if (typeof token === 'function') {
