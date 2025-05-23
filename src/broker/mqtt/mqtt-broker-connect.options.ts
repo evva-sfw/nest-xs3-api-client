@@ -1,4 +1,4 @@
-export interface MqttBrokerModuleOptions {
+export interface MqttBrokerConnectOptions {
   /**
    * MQTT host
    */
