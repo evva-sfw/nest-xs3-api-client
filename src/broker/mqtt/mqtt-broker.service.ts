@@ -57,7 +57,6 @@ export class MqttBrokerService implements Broker {
       ca: options.certCA,
       key: options.key,
       protocol: 'mqtts',
-      clientId: options.clientId,
       rejectUnauthorized: false,
       autoSubscribe: true,
       clean: true,
@@ -69,7 +68,7 @@ export class MqttBrokerService implements Broker {
             throw new Error(`Unsupported topic variable: ${varname}`);
         }
       },
-    } as MqttConnectOptions);
+    });
   }
 
   /**
