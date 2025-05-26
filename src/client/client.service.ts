@@ -1,7 +1,12 @@
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { CommandService } from '../command/command.service';
 import { QueryService } from '../query/query.service';
-import { Query, QueryPaged } from '../query/query.type';
+import {
+  Query,
+  QueryPaged,
+  QueryPagedResponse,
+  QueryResponse,
+} from '../query/query.type';
 import { ClientConnectOptions } from './client-connect.options';
 import { Injectable, Logger } from '@nestjs/common';
 
@@ -15,7 +20,7 @@ export class ClientService {
     private readonly commandService: CommandService,
   ) {}
 
-  async connect(options: ClientConnectOptions) {
+  async connect(options: ClientConnectOptions): Promise<boolean> {
     try {
       await this.mqttBrokerService.connect({
         host: options.host,
@@ -28,22 +33,26 @@ export class ClientService {
       } as ClientConnectOptions);
     } catch (e) {
       this.logger.error(`Failed to connect to broker: ${e}`);
+      return false;
     }
+    return true;
   }
 
-  async disconnect() {
+  async disconnect(): Promise<boolean> {
     try {
       await this.mqttBrokerService.disconnect();
     } catch (e) {
       this.logger.error(`Failed to disconnect from broker: ${e}`);
+      return false;
     }
+    return true;
   }
 
-  async query(q: Query) {
+  async query(q: Query): Promise<QueryResponse | null> {
     return this.queryService.query(q);
   }
 
-  async queryPaged(q: QueryPaged) {
+  async queryPaged(q: QueryPaged): Promise<QueryPagedResponse[] | null> {
     return this.queryService.queryPaged(q);
   }
 

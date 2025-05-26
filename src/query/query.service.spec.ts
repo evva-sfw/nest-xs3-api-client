@@ -61,16 +61,17 @@ describe('QueryService', () => {
   });
 
   describe('query()', () => {
-    it('should return null on no connection', async () => {
+    it('should throw on no connection', async () => {
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
-      const result = await queryService.query({
-        res: 'evva-components',
-        uuid: '7950ed5a-ddc1-4033-ac11-3487dac8cf3b',
-      });
-      expect(result).toBe(null);
+      await expect(
+        queryService.query({
+          res: 'evva-components',
+          uuid: '7950ed5a-ddc1-4033-ac11-3487dac8cf3b',
+        }),
+      ).rejects.toThrow();
     });
 
     it('should emit EVENT_QUERY_SINGLE_REQUEST', async () => {
@@ -142,15 +143,16 @@ describe('QueryService', () => {
   });
 
   describe('queryPaged()', () => {
-    it('should return null on no connection', async () => {
+    it('should throw on no connection', async () => {
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
-      const result = await queryService.queryPaged({
-        res: 'evva-components',
-      });
-      expect(result).toBe(null);
+      await expect(
+        queryService.queryPaged({
+          res: 'evva-components',
+        }),
+      ).rejects.toThrow();
     });
 
     it('should emit EVENT_QUERY_PAGED_REQUEST', async () => {
