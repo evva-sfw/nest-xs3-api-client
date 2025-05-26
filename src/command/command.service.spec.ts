@@ -40,16 +40,14 @@ describe('CommandService', () => {
     const profileId = '7950ed5a-ddc1-4033-ac11-3487dac8cf3b';
     const mediumId = '6087c4c8-1125-4af8-8d1d-d8d287406f98';
 
-    it('should return null on no connection', async () => {
+    it('should throw on no connection', async () => {
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
-      const result = await commandService.assignAuthorizationProfileToMedium(
-        profileId,
-        mediumId,
-      );
-      expect(result).toBe(null);
+      await expect(
+        commandService.assignAuthorizationProfileToMedium(profileId, mediumId),
+      ).rejects.toThrow();
     });
 
     it('should emit EVENT_CQRS_REQUEST', async () => {
@@ -97,16 +95,14 @@ describe('CommandService', () => {
     const personId = '7950ed5a-ddc1-4033-ac11-3487dac8cf3b';
     const mediumId = '6087c4c8-1125-4af8-8d1d-d8d287406f98';
 
-    it('should return null on no connection', async () => {
+    it('should throw on no connection', async () => {
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
-      const result = await commandService.assignPersonToMedium(
-        personId,
-        mediumId,
-      );
-      expect(result).toBe(null);
+      await expect(
+        commandService.assignPersonToMedium(personId, mediumId),
+      ).rejects.toThrow();
     });
 
     it('should emit EVENT_CQRS_REQUEST', async () => {
@@ -150,16 +146,14 @@ describe('CommandService', () => {
     // Arguments
     const installationPointId = '7950ed5a-ddc1-4033-ac11-3487dac8cf3b';
 
-    it('should return null on no connection', async () => {
+    it('should throw on no connection', async () => {
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
-      const result = await commandService.remoteDisengage(
-        installationPointId,
-        true,
-      );
-      expect(result).toBe(null);
+      await expect(
+        commandService.remoteDisengage(installationPointId, true),
+      ).rejects.toThrow();
     });
 
     it('should emit EVENT_CQRS_REQUEST', async () => {
@@ -203,16 +197,14 @@ describe('CommandService', () => {
     // Arguments
     const installationPointId = '7950ed5a-ddc1-4033-ac11-3487dac8cf3b';
 
-    it('should return null on no connection', async () => {
+    it('should throw on no connection', async () => {
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
-      const result = await commandService.remoteDisengagePermanent(
-        installationPointId,
-        true,
-      );
-      expect(result).toBe(null);
+      await expect(
+        commandService.remoteDisengagePermanent(installationPointId, true),
+      ).rejects.toThrow();
     });
 
     it('should emit EVENT_CQRS_REQUEST', async () => {

@@ -24,6 +24,7 @@ export class CommandService {
    *
    * @param {string} profileId
    * @param {string} mediumId
+   * @throws
    * @returns {CommandResponse}
    */
   async assignAuthorizationProfileToMedium(
@@ -31,8 +32,7 @@ export class CommandService {
     mediumId: string,
   ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
-      this.logger.error('Command failed: not connected to broker');
-      return null;
+      return Promise.reject(new Error('Query failed: not connected to broker'));
     }
     return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
@@ -52,6 +52,7 @@ export class CommandService {
    *
    * @param {string} personId
    * @param {string} mediumId
+   * @throws
    * @returns {CommandResponse}
    */
   async assignPersonToMedium(
@@ -59,8 +60,7 @@ export class CommandService {
     mediumId: string,
   ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
-      this.logger.error('Command failed: not connected to broker');
-      return null;
+      return Promise.reject(new Error('Query failed: not connected to broker'));
     }
     return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
@@ -80,6 +80,7 @@ export class CommandService {
    *
    * @param {string} installationPointId
    * @param {boolean} extended
+   * @throws
    * @returns {CommandResponse}
    */
   async remoteDisengage(
@@ -87,8 +88,7 @@ export class CommandService {
     extended: boolean,
   ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
-      this.logger.error('Command failed: not connected to broker');
-      return null;
+      return Promise.reject(new Error('Query failed: not connected to broker'));
     }
     return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
@@ -108,6 +108,7 @@ export class CommandService {
    *
    * @param {string} installationPointId
    * @param {boolean} enable
+   * @throws
    * @returns {CommandResponse}
    */
   async remoteDisengagePermanent(
@@ -115,8 +116,7 @@ export class CommandService {
     enable: boolean,
   ): Promise<CommandResponse> {
     if (!this.mqttBrokerService.isConnected()) {
-      this.logger.error('Command failed: not connected to broker');
-      return null;
+      return Promise.reject(new Error('Query failed: not connected to broker'));
     }
     return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;

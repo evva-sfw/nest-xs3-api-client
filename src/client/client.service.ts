@@ -48,11 +48,11 @@ export class ClientService {
     return true;
   }
 
-  async query(q: Query): Promise<QueryResponse> {
+  async query(q: Query): Promise<QueryResponse | null> {
     return this.queryService.query(q);
   }
 
-  async queryPaged(q: QueryPaged): Promise<QueryPagedResponse[]> {
+  async queryPaged(q: QueryPaged): Promise<QueryPagedResponse[] | null> {
     return this.queryService.queryPaged(q);
   }
 
