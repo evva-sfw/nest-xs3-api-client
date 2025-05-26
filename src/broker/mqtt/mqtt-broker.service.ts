@@ -22,12 +22,7 @@ import {
   BROKER_TOPIC_SUFFIXES,
   BROKER_TOPICS,
 } from './mqtt-broker.constants';
-import {
-  MqttConnectOptions,
-  MqttService,
-  Payload,
-  Subscribe,
-} from '@evva/nest-mqtt';
+import { MqttService, Payload, Subscribe } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
