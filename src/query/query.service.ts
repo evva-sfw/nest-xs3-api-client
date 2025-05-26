@@ -62,9 +62,12 @@ export class QueryService {
    *
    * @param {Query} query
    * @param {number=} timeout
-   * @returns {QueryResponse}
+   * @returns {QueryResponse | null}
    */
-  async query(query: Query, timeout: number = 5000): Promise<QueryResponse> {
+  async query(
+    query: Query,
+    timeout: number = 5000,
+  ): Promise<QueryResponse | null> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Query failed: not connected to broker');
       return null;
@@ -99,12 +102,12 @@ export class QueryService {
    *
    * @param {QueryPaged} query
    * @param {number=} timeout
-   * @returns {QueryPagedResponse[]}
+   * @returns {QueryPagedResponse[] | null}
    */
   async queryPaged(
     query: QueryPaged,
     timeout: number = 5000,
-  ): Promise<QueryPagedResponse[]> {
+  ): Promise<QueryPagedResponse[] | null> {
     if (!this.mqttBrokerService.isConnected()) {
       this.logger.error('Query failed: not connected to broker');
       return null;
