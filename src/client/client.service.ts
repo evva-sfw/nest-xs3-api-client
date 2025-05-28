@@ -26,7 +26,7 @@ export class ClientService {
         host: options.host,
         port: options.port,
         cert: options.cert,
-        certCA: options.certCA,
+        ca: options.ca,
         key: options.key,
         clientId: options.clientId,
         token: options.token,
@@ -56,31 +56,43 @@ export class ClientService {
     return this.queryService.queryPaged(q);
   }
 
-  async assignAuthorizationProfileToMediumCommand(
-    profileId: string,
-    mediumId: string,
-  ) {
-    return this.commandService.assignAuthorizationProfileToMedium(
-      profileId,
-      mediumId,
-    );
+  async commandRelaisBoard(rb: string, config: any) {
+    return this.commandService.commandRelaisBoard({ rb, config });
   }
 
-  async assignPersonToMediumCommand(personId: string, mediumId: string) {
-    return this.commandService.assignPersonToMedium(personId, mediumId);
-  }
+  // /**
+  //  * Publishes a RB command to the broker.
+  //  *
+  //  * @param {CommandRequest} payload
+  //  */
+  // @OnEvent(EVENT_ACCESS_PROTOCOL_RECEIVED, { async: true })
+  // public async publishRelaisBoardCommand() {}
 
-  async remoteDisengageCommand(installationPointId: string, extended: boolean) {
-    return this.commandService.remoteDisengage(installationPointId, extended);
-  }
-
-  async remoteDisengagePermanentCommand(
-    installationPointId: string,
-    enable: boolean,
-  ) {
-    return this.commandService.remoteDisengagePermanent(
-      installationPointId,
-      enable,
-    );
-  }
+  // async assignAuthorizationProfileToMediumCommand(
+  //   profileId: string,
+  //   mediumId: string,
+  // ) {
+  //   return this.commandService.assignAuthorizationProfileToMedium(
+  //     profileId,
+  //     mediumId,
+  //   );
+  // }
+  //
+  // async assignPersonToMediumCommand(personId: string, mediumId: string) {
+  //   return this.commandService.assignPersonToMedium(personId, mediumId);
+  // }
+  //
+  // async remoteDisengageCommand(installationPointId: string, extended: boolean) {
+  //   return this.commandService.remoteDisengage(installationPointId, extended);
+  // }
+  //
+  // async remoteDisengagePermanentCommand(
+  //   installationPointId: string,
+  //   enable: boolean,
+  // ) {
+  //   return this.commandService.remoteDisengagePermanent(
+  //     installationPointId,
+  //     enable,
+  //   );
+  // }
 }

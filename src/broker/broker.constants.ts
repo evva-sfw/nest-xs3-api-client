@@ -6,3 +6,5 @@ export const EVENT_QUERY_PAGED_RESPONSE = 'event.query.paged.response';
 export const EVENT_CQRS_REQUEST = 'event.cqrs.request';
 export const EVENT_CQRS_RESPONSE = 'event.cqrs.response';
 export const EVENT_ERROR_RESPONSE = 'event.error.response';
+export const EVENT_RB_REQUEST = 'event.rb.request';
+export const EVENT_RB_RESPONSE = 'event.rb.response';

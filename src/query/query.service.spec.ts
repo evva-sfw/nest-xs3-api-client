@@ -3,7 +3,7 @@ import {
   EVENT_QUERY_PAGED_RESPONSE,
   EVENT_QUERY_SINGLE_REQUEST,
   EVENT_QUERY_SINGLE_RESPONSE,
-} from '../broker/broker.events';
+} from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { QueryService } from './query.service';
 import { QueryPagedRequest, QueryRequest } from './query.type';

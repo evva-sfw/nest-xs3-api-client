@@ -1,0 +1,104 @@
+import { COMPONENT_EVENTS } from './component.constants';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class ComponentService {
+  constructor() {}
+
+  /**
+   * Returns if the given event is an opening.
+   *
+   * @param {number} eventId
+   */
+  public isOpening(eventId: number): boolean {
+    switch (eventId) {
+      case COMPONENT_EVENTS.OPENING_NORMAL:
+      case COMPONENT_EVENTS.OPENING_NORMAL_PROLONGED:
+      case COMPONENT_EVENTS.OPENING_EMERGENCY:
+      case COMPONENT_EVENTS.OPENING_EMERGENCY_PROLONGED:
+        return true;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Returns the stringified event number type.
+   *
+   * @param {number} eventId
+   */
+  public toEventTypeString(eventId: number): string {
+    switch (eventId) {
+      case COMPONENT_EVENTS.BATTERY_EMPTY:
+        return '0x0B01 BATTERY_EMPTY';
+      case COMPONENT_EVENTS.BLACKLIST_VERSION_ERROR:
+        return '0x0A03 BLACKLIST_VERSION_ERROR';
+      case COMPONENT_EVENTS.ED_DATA_ERROR:
+        return '0x0C06 ED_DATA_ERROR';
+      case COMPONENT_EVENTS.EEPROM_INITIALIZED:
+        return '0x0B02 EEPROM_INITIALIZED';
+      case COMPONENT_EVENTS.ELOG_INITIALIZED:
+        return '0x0C02 ELOG_INITIALIZED';
+      case COMPONENT_EVENTS.FW_UPDATE_PERFORMED:
+        return '0x0501 FW_UPDATE_PERFORMED';
+      case COMPONENT_EVENTS.INIT_BLACKLIST:
+        return '0x030C INIT_BLACKLIST';
+      case COMPONENT_EVENTS.INIT_DATA:
+        return '0x0301 INIT_DATA';
+      case COMPONENT_EVENTS.INIT_DISENGAGE_TIME:
+        return '0x030E INIT_DISENGAGE_TIME';
+      case COMPONENT_EVENTS.INIT_DOORAREAS:
+        return '0x0306 INIT_DOORAREAS';
+      case COMPONENT_EVENTS.INIT_DOOR_ID:
+        return '0x0305 INIT_DOOR_ID';
+      case COMPONENT_EVENTS.INIT_DST:
+        return '0x030A INIT_DST';
+      case COMPONENT_EVENTS.INIT_SPECIALDAY:
+        return '0x0308 INIT_SPECIALDAY';
+      case COMPONENT_EVENTS.INIT_SPECIALDAY_RESET:
+        return '0x0307 INIT_SPECIALDAY_RESET';
+      case COMPONENT_EVENTS.INIT_TIME:
+        return '0x0304 INIT_TIME';
+      case COMPONENT_EVENTS.INIT_TIMED_OPENING:
+        return '0x0309 INIT_TIMED_OPENING';
+      case COMPONENT_EVENTS.KILL_MEDIUM:
+        return '0x0401 KILL_MEDIUM';
+      case COMPONENT_EVENTS.MANUAL_OPENING_FINISHED:
+        return '0x0004 MANUAL_OPENING_FINISHED';
+      case COMPONENT_EVENTS.MANUAL_OPENING_STARTED:
+        return '0x0003 MANUAL_OPENING_STARTED';
+      case COMPONENT_EVENTS.MEDIUM_RESTRICTED:
+        return '0x0005 MEDIUM_RESTRICTED';
+      case COMPONENT_EVENTS.OPENING_NORMAL:
+        return '0x0001 OPENING_NORMAL';
+      case COMPONENT_EVENTS.OPENING_EMERGENCY:
+        return '0x0002 OPENING_EMERGENCY';
+      case COMPONENT_EVENTS.OPENING_NORMAL_PROLONGED:
+        return '0x0007 OPENING_NORMAL_PROLONGED';
+      case COMPONENT_EVENTS.OPENING_EMERGENCY_PROLONGED:
+        return '0x0008 OPENING_EMERGENCY_PROLONGED';
+      case COMPONENT_EVENTS.OPENING_EMERGENCY_INVALID_BLACKLIST_OR_TIME:
+        return '0x0009 OPENING_EMERGENCY_INVALID_BLACKLIST_OR_TIME';
+      case COMPONENT_EVENTS.OPENING_EMERGENCY_PROLONGED_INVALID_BLACKLIST_OR_TIME:
+        return '0x000A OPENING_EMERGENCY_PROLONGED_INVALID_BLACKLIST_OR_TIME';
+      case COMPONENT_EVENTS.PANIC_EXIT:
+        return '0x0A01 PANIC_EXIT';
+      case COMPONENT_EVENTS.PERMIT_INIT_TIME:
+        return '0x0303 PERMIT_INIT_TIME';
+      case COMPONENT_EVENTS.RTC_ERROR:
+        return '0x0A02 RTC_ERROR';
+      case COMPONENT_EVENTS.TIME_CHANGE_EXECUTED:
+        return '0x0201 TIME_CHANGE_EXECUTED';
+      case COMPONENT_EVENTS.TIMED_OPENING_FINISHED:
+        return '0x0102 TIMED_OPENING_FINISHED';
+      case COMPONENT_EVENTS.TIMED_OPENING_SKIPPED:
+        return '0x0103 TIMED_OPENING_SKIPPED';
+      case COMPONENT_EVENTS.TIMED_OPENING_STARTED:
+        return '0x0101 TIMED_OPENING_STARTED';
+      case COMPONENT_EVENTS.UPDATE_KEY:
+        return '0x0302 UPDATE_KEY';
+      case COMPONENT_EVENTS.MIDNIGHT_DEBUG:
+        return '0x0C07 MIDNIGHT_DEBUG';
+    }
+  }
+}

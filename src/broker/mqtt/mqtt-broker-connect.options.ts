@@ -1,29 +1,6 @@
-export interface MqttBrokerConnectOptions {
-  /**
-   * MQTT host
-   */
-  host: string;
+import { MqttConnectOptions } from '@evva/nest-mqtt';
 
-  /**
-   * MQTT port
-   */
-  port: number;
-
-  /**
-   * MQTT client cert
-   */
-  cert: string;
-
-  /**
-   * MQTT ca cert
-   */
-  certCA: string;
-
-  /**
-   * MQTT private key
-   */
-  key: string;
-
+export interface MqttBrokerConnectOptions extends MqttConnectOptions {
   /**
    * MQTT client id
    */
