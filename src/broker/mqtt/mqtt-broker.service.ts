@@ -1,4 +1,4 @@
-import { CommandRequest } from '../../command/command';
+import { CommandDataRelaisBoard, CommandRequest } from '../../command/command';
 import {
   QueryPagedRequest,
   QueryPagedResponse,
@@ -14,7 +14,9 @@ import {
   EVENT_QUERY_PAGED_RESPONSE,
   EVENT_QUERY_SINGLE_REQUEST,
   EVENT_QUERY_SINGLE_RESPONSE,
-} from '../broker.events';
+  EVENT_RB_REQUEST,
+  EVENT_RB_RESPONSE,
+} from '../broker.constants';
 import { Broker } from '../broker.interface';
 import { MqttBrokerConnectOptions } from './mqtt-broker-connect.options';
 import {
@@ -49,7 +51,7 @@ export class MqttBrokerService implements Broker {
       host: options.host,
       port: options.port,
       cert: options.cert,
-      ca: options.certCA,
+      ca: options.ca,
       key: options.key,
       protocol: 'mqtts',
       rejectUnauthorized: false,
@@ -151,6 +153,20 @@ export class MqttBrokerService implements Broker {
   }
 
   /**
+   * Subscription handler for relais board responses.
+   *
+   * @param {object} payload
+   * @private
+   */
+  @Subscribe(`${BROKER_TOPICS.RB_DIAG}`)
+  public handleRelaisBoardCommandEvent(@Payload() payload: any) {
+    this.logger.verbose(
+      `Message received\n\ttopic: ${BROKER_TOPICS.RB_DIAG}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+    );
+    this.eventEmitter.emit(EVENT_RB_RESPONSE, payload);
+  }
+
+  /**
    * Publishes a single resource query to the broker.
    *
    * @param {QueryRequest} request
@@ -212,17 +228,38 @@ export class MqttBrokerService implements Broker {
    * @param {CommandRequest} payload
    */
   @OnEvent(EVENT_CQRS_REQUEST, { async: true })
-  public async publishCommand(payload: CommandRequest) {
+  public async publishCQRSCommand(payload: CommandRequest) {
     try {
+      const topic = `${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}`;
       const dataStr = JSON.stringify(payload.data);
 
-      await this.mqttService.publish(
-        `${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}`,
-        dataStr,
-      );
+      await this.mqttService.publish(topic, dataStr);
 
       this.logger.verbose(
-        `Message published\n\ttopic: ${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}\n\tdata: ${dataStr}`,
+        `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
+      );
+    } catch (err) {
+      this.logger.error(`Failed to publish command: ${err}`);
+    }
+  }
+
+  /**
+   * Publishes a RB command to the broker.
+   *
+   * @param {CommandRequest} payload
+   */
+  @OnEvent(EVENT_RB_REQUEST, { async: true })
+  public async publishRelaisBoardCommand(payload: CommandRequest) {
+    try {
+      const topic = `${BROKER_TOPIC_PREFIXES.RB}/${(payload.data as CommandDataRelaisBoard).rb}/do`;
+      const dataStr = JSON.stringify(
+        (payload.data as CommandDataRelaisBoard).config,
+      );
+
+      await this.mqttService.publish(topic, dataStr);
+
+      this.logger.verbose(
+        `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
       );
     } catch (err) {
       this.logger.error(`Failed to publish command: ${err}`);

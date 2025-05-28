@@ -3,7 +3,7 @@ import {
   EVENT_QUERY_SINGLE_REQUEST,
   EVENT_QUERY_SINGLE_RESPONSE,
   EVENT_QUERY_PAGED_RESPONSE,
-} from '../broker/broker.events';
+} from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { HashTable } from '../common/interface';
 import {

@@ -10,7 +10,7 @@ import {
   EVENT_ERROR_RESPONSE,
   EVENT_QUERY_PAGED_RESPONSE,
   EVENT_QUERY_SINGLE_RESPONSE,
-} from '../broker.events';
+} from '../broker.constants';
 import { BROKER_TOPIC_PREFIXES, BROKER_TOPICS } from './mqtt-broker.constants';
 import { MqttBrokerService } from './mqtt-broker.service';
 import { MqttService } from '@evva/nest-mqtt';
@@ -196,7 +196,7 @@ describe('MqttBrokerService', () => {
             return null;
           });
       });
-      void mqttBrokerService.publishCommand({
+      void mqttBrokerService.publishCQRSCommand({
         type: type,
       } as CommandRequest);
 
@@ -210,8 +210,9 @@ describe('MqttBrokerService', () => {
       port: 0,
       token: '',
       cert: '',
-      certCA: '',
+      ca: '',
       key: '',
+      protocol: 'mqtts',
       clientId: '',
     });
   };
