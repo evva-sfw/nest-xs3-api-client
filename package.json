@@ -4,7 +4,7 @@
     "description": "Client implementation for the Xesar 3 MQTT api interface.",
     "private": false,
     "author": "EVVA Sicherheitstechnologie GmbH",
-    "license": "SEE LICENSE IN <LICENSE>",
+    "license": "EVVA Software License",
     "scripts": {
         "build": "rimraf dist && tsc -p tsconfig.build.json",
         "lint": "npx eslint src",
