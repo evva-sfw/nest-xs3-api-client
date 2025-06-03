@@ -1,7 +1,7 @@
 import {
   EVENT_CQRS_REQUEST,
   EVENT_CQRS_RESPONSE,
-} from '../broker/broker.events';
+} from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { CommandService } from './command.service';
 import { InjectionToken } from '@nestjs/common';

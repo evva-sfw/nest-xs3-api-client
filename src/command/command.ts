@@ -4,11 +4,12 @@ export type Command =
   | 'RemoteDisengage'
   | 'RemoteDisengagePermanent'
   | 'AssignAuthorizationProfileToMediumMapi'
-  | 'AssignPersonToMediumMapi';
+  | 'AssignPersonToMediumMapi'
+  | 'ConfigureRelaisBoard';
 
 export type CommandRequest = {
   type: Command;
-  data: object;
+  data: CommandData;
 };
 
 export type CommandResponse = {
@@ -18,3 +19,33 @@ export type CommandResponse = {
 export type CommandResolver = (
   value: CommandResponse | PromiseLike<CommandResponse>,
 ) => void;
+
+export type CommandData = CommandDataCQRS | CommandDataRelaisBoard;
+
+export type CommandDataCQRS = object;
+
+export type CommandDataRelaisBoard = {
+  rb: string;
+  config: CommandDataRelaisBoardConfig;
+};
+
+export type CommandDataRelaisBoardConfig =
+  | CommandDataRelaisBoardConfigSetup
+  | CommandDataRelaisBoardConfigCommand;
+
+export type CommandDataRelaisBoardConfigSetup = {
+  t: 'c';
+  o: CommandDataRelaisBoardConfigSetupData[];
+  i?: { gpio: number };
+};
+
+export type CommandDataRelaisBoardConfigSetupData = {
+  gpio: number;
+  on: 'low' | 'high';
+};
+
+export type CommandDataRelaisBoardConfigCommand = {
+  t: 'o';
+  o: number;
+  timeout?: number;
+};
