@@ -1,4 +1,5 @@
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
+import { CommandDataRelaisBoardConfig } from '../command/command';
 import { CommandService } from '../command/command.service';
 import { QueryService } from '../query/query.service';
 import {
@@ -26,7 +27,7 @@ export class ClientService {
         host: options.host,
         port: options.port,
         cert: options.cert,
-        certCA: options.certCA,
+        ca: options.ca,
         key: options.key,
         clientId: options.clientId,
         token: options.token,
@@ -56,31 +57,10 @@ export class ClientService {
     return this.queryService.queryPaged(q);
   }
 
-  async assignAuthorizationProfileToMediumCommand(
-    profileId: string,
-    mediumId: string,
-  ) {
-    return this.commandService.assignAuthorizationProfileToMedium(
-      profileId,
-      mediumId,
-    );
-  }
-
-  async assignPersonToMediumCommand(personId: string, mediumId: string) {
-    return this.commandService.assignPersonToMedium(personId, mediumId);
-  }
-
-  async remoteDisengageCommand(installationPointId: string, extended: boolean) {
-    return this.commandService.remoteDisengage(installationPointId, extended);
-  }
-
-  async remoteDisengagePermanentCommand(
-    installationPointId: string,
-    enable: boolean,
-  ) {
-    return this.commandService.remoteDisengagePermanent(
-      installationPointId,
-      enable,
-    );
+  async commandRelaisBoard(rb: string, config: CommandDataRelaisBoardConfig) {
+    return this.commandService.commandRelaisBoard({
+      rb,
+      config,
+    });
   }
 }

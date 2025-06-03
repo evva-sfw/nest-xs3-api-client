@@ -1,23 +1,43 @@
 import {
   EVENT_CQRS_REQUEST,
   EVENT_CQRS_RESPONSE,
-} from '../broker/broker.events';
+  EVENT_RB_REQUEST,
+} from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
-import { CommandRequest, CommandResolver, CommandResponse } from './command';
+import {
+  CommandDataRelaisBoard,
+  CommandRequest,
+  CommandResolver,
+  CommandResponse,
+} from './command';
 import { Payload } from '@evva/nest-mqtt';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CommandService {
-  private readonly logger = new Logger('CommandService');
-
   private resolver: CommandResolver;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,
     private readonly eventEmitter: EventEmitter2,
   ) {}
+
+  /**
+   * Publishes the relais board command.
+   *
+   * @param {CommandDataRelaisBoard} data
+   * @throws
+   */
+  async commandRelaisBoard(data: CommandDataRelaisBoard) {
+    if (!this.mqttBrokerService.isConnected()) {
+      throw new Error('Query failed: not connected to broker');
+    }
+    await this.eventEmitter.emitAsync(EVENT_RB_REQUEST, {
+      type: 'ConfigureRelaisBoard',
+      data,
+    } as CommandRequest);
+  }
 
   /**
    * Assigns an authorization profile to a medium.
