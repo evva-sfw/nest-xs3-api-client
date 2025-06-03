@@ -21,8 +21,31 @@ export type CommandResolver = (
 ) => void;
 
 export type CommandData = CommandDataCQRS | CommandDataRelaisBoard;
+
 export type CommandDataCQRS = object;
+
 export type CommandDataRelaisBoard = {
   rb: string;
-  config: { t: string; o: number; timeout: number };
+  config: CommandDataRelaisBoardConfig;
+};
+
+export type CommandDataRelaisBoardConfig =
+  | CommandDataRelaisBoardConfigSetup
+  | CommandDataRelaisBoardConfigCommand;
+
+export type CommandDataRelaisBoardConfigSetup = {
+  t: 'c';
+  o: CommandDataRelaisBoardConfigSetupData[];
+  i?: { gpio: number };
+};
+
+export type CommandDataRelaisBoardConfigSetupData = {
+  gpio: number;
+  on: 'low' | 'high';
+};
+
+export type CommandDataRelaisBoardConfigCommand = {
+  t: 'o';
+  o: number;
+  timeout?: number;
 };

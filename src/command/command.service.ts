@@ -11,13 +11,11 @@ import {
   CommandResponse,
 } from './command';
 import { Payload } from '@evva/nest-mqtt';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
 export class CommandService {
-  private readonly logger = new Logger('CommandService');
-
   private resolver: CommandResolver;
 
   constructor(
@@ -26,7 +24,7 @@ export class CommandService {
   ) {}
 
   /**
-   * Publishes the relais board configuration.
+   * Publishes the relais board command.
    *
    * @param {CommandDataRelaisBoard} data
    * @throws

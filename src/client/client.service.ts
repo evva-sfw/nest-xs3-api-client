@@ -1,4 +1,5 @@
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
+import { CommandDataRelaisBoardConfig } from '../command/command';
 import { CommandService } from '../command/command.service';
 import { QueryService } from '../query/query.service';
 import {
@@ -56,43 +57,10 @@ export class ClientService {
     return this.queryService.queryPaged(q);
   }
 
-  async commandRelaisBoard(rb: string, config: any) {
-    return this.commandService.commandRelaisBoard({ rb, config });
+  async commandRelaisBoard(rb: string, config: CommandDataRelaisBoardConfig) {
+    return this.commandService.commandRelaisBoard({
+      rb,
+      config,
+    });
   }
-
-  // /**
-  //  * Publishes a RB command to the broker.
-  //  *
-  //  * @param {CommandRequest} payload
-  //  */
-  // @OnEvent(EVENT_ACCESS_PROTOCOL_RECEIVED, { async: true })
-  // public async publishRelaisBoardCommand() {}
-
-  // async assignAuthorizationProfileToMediumCommand(
-  //   profileId: string,
-  //   mediumId: string,
-  // ) {
-  //   return this.commandService.assignAuthorizationProfileToMedium(
-  //     profileId,
-  //     mediumId,
-  //   );
-  // }
-  //
-  // async assignPersonToMediumCommand(personId: string, mediumId: string) {
-  //   return this.commandService.assignPersonToMedium(personId, mediumId);
-  // }
-  //
-  // async remoteDisengageCommand(installationPointId: string, extended: boolean) {
-  //   return this.commandService.remoteDisengage(installationPointId, extended);
-  // }
-  //
-  // async remoteDisengagePermanentCommand(
-  //   installationPointId: string,
-  //   enable: boolean,
-  // ) {
-  //   return this.commandService.remoteDisengagePermanent(
-  //     installationPointId,
-  //     enable,
-  //   );
-  // }
 }
