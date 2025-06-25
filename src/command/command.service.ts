@@ -79,7 +79,7 @@ export class CommandService {
    */
   @OnEvent(EVENT_CQRS_RESPONSE, { async: true })
   @OnEvent(EVENT_ERROR_RESPONSE, { async: true })
-  protected onErrorResponse(@Payload() response: CommandResponse) {
+  protected onCQRSResponse(@Payload() response: CommandResponse) {
     const id = response.commandId || response.correlationId;
     if (this.cqrsRequests[id]) {
       this.cqrsRequests[id](response);
