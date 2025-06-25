@@ -17,10 +17,12 @@ import {
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CommandService {
-  private resolver: CommandResolver;
+  private cqrsRequests: HashMap<CommandResolver> = {};
+  private rbRequest: CommandResolver;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,
@@ -37,10 +39,12 @@ export class CommandService {
     if (!this.mqttBrokerService.isConnected()) {
       throw new Error('Command failed: not connected to broker');
     }
-    return new Promise<CommandResponse>((resolver) => {
-      this.resolver = resolver;
+    const commandId = (data.commandId as string) || uuidv4();
 
+    return new Promise<CommandResponse>((resolver) => {
+      this.cqrsRequests[commandId] = resolver;
       this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
+        commandId,
         type,
         data,
       } as CommandRequest);
@@ -58,7 +62,7 @@ export class CommandService {
       throw new Error('Command failed: not connected to broker');
     }
     return new Promise<CommandResponse>((resolver) => {
-      this.resolver = resolver;
+      this.rbRequest = resolver;
 
       this.eventEmitter.emit(EVENT_RB_REQUEST, {
         type,
@@ -68,44 +72,32 @@ export class CommandService {
   }
 
   /**
-   * Event handler for new CQRS responses from broker.
+   * Event handler for CQRS and error responses.
    *
    * @param {any} response
    * @protected
    */
   @OnEvent(EVENT_CQRS_RESPONSE, { async: true })
-  protected onCQRSResponse(@Payload() response: CommandResponse) {
-    if (this.resolver) {
-      this.resolver(response);
-      this.resolver = null;
+  @OnEvent(EVENT_ERROR_RESPONSE, { async: true })
+  protected onErrorResponse(@Payload() response: CommandResponse) {
+    const id = response.commandId || response.correlationId;
+    if (this.cqrsRequests[id]) {
+      this.cqrsRequests[id](response);
+      delete this.cqrsRequests[id];
     }
   }
 
   /**
-   * Event handler for new RB responses from broker.
+   * Event handler for RB responses from broker.
    *
    * @param {any} response
    * @protected
    */
   @OnEvent(EVENT_RB_RESPONSE, { async: true })
   protected onRBResponse(@Payload() response: CommandResponse) {
-    if (this.resolver) {
-      this.resolver(response);
-      this.resolver = null;
-    }
-  }
-
-  /**
-   * Event handler for error responses from broker.
-   *
-   * @param {any} response
-   * @protected
-   */
-  @OnEvent(EVENT_ERROR_RESPONSE, { async: true })
-  protected onErrorResponse(@Payload() response: CommandResponse) {
-    if (this.resolver) {
-      this.resolver(response);
-      this.resolver = null;
+    if (this.rbRequest) {
+      this.rbRequest(response);
+      this.rbRequest = null;
     }
   }
 }

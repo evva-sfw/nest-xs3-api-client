@@ -94,6 +94,7 @@ export type CommandRequest = {
 
 export type CommandResponse = {
   commandId: string;
+  correlationId: string;
 };
 
 export type CommandResolver = (

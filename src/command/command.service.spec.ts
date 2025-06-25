@@ -37,9 +37,11 @@ describe('CommandService', () => {
 
   describe('cqrs()', () => {
     // Arguments
+    const commandId = '968b8708-9504-4552-8fff-71ceaabafdb9';
     const type = 'RemoteDisengage';
     const data = {
       installationPointId: 'a7691e53-4c35-44f1-b3e1-cc77f48be4fc',
+      commandId,
     };
 
     it('should throw on no connection', async () => {
@@ -67,8 +69,6 @@ describe('CommandService', () => {
     });
 
     it('should return command response', async () => {
-      const commandId = '968b8708-9504-4552-8fff-71ceaabafdb9';
-
       jest
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
