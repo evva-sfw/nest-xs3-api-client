@@ -231,7 +231,11 @@ export class MqttBrokerService implements Broker {
   public async publishCQRSCommand(payload: CommandRequest) {
     try {
       const topic = `${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}`;
-      const dataStr = JSON.stringify(payload.data);
+      const data = {
+        token: this.options.token,
+        ...payload.data,
+      };
+      const dataStr = JSON.stringify(data);
 
       await this.mqttService.publish(topic, dataStr);
 
@@ -244,7 +248,7 @@ export class MqttBrokerService implements Broker {
   }
 
   /**
-   * Publishes a RB command to the broker.
+   * Publishes an RB command to the broker.
    *
    * @param {CommandRequest} payload
    */
@@ -257,6 +261,7 @@ export class MqttBrokerService implements Broker {
       );
 
       await this.mqttService.publish(topic, dataStr);
+      this.eventEmitter.emit(EVENT_RB_RESPONSE, null);
 
       this.logger.verbose(
         `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,

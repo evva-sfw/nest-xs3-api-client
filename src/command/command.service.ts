@@ -1,14 +1,18 @@
 import {
   EVENT_CQRS_REQUEST,
   EVENT_CQRS_RESPONSE,
+  EVENT_ERROR_RESPONSE,
   EVENT_RB_REQUEST,
+  EVENT_RB_RESPONSE,
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
+import { HashMap } from '../common/interface';
 import {
-  CommandDataRelaisBoard,
   CommandRequest,
   CommandResolver,
   CommandResponse,
+  CommandCQRS,
+  CommandRelais,
 } from './command';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable } from '@nestjs/common';
@@ -24,141 +28,81 @@ export class CommandService {
   ) {}
 
   /**
-   * Publishes the relais board command.
+   * Dispatches a CQRS command to the broker.
    *
-   * @param {CommandDataRelaisBoard} data
-   * @throws
+   * @param {CommandCQRS} type
+   * @param {HashMap<any>} data
    */
-  async commandRelaisBoard(data: CommandDataRelaisBoard) {
+  async cqrs(type: CommandCQRS, data: HashMap<any>) {
     if (!this.mqttBrokerService.isConnected()) {
-      throw new Error('Query failed: not connected to broker');
-    }
-    await this.eventEmitter.emitAsync(EVENT_RB_REQUEST, {
-      type: 'ConfigureRelaisBoard',
-      data,
-    } as CommandRequest);
-  }
-
-  /**
-   * Assigns an authorization profile to a medium.
-   *
-   * @param {string} profileId
-   * @param {string} mediumId
-   * @throws
-   * @returns {CommandResponse}
-   */
-  async assignAuthorizationProfileToMedium(
-    profileId: string,
-    mediumId: string,
-  ): Promise<CommandResponse> {
-    if (!this.mqttBrokerService.isConnected()) {
-      return Promise.reject(new Error('Query failed: not connected to broker'));
+      throw new Error('Command failed: not connected to broker');
     }
     return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
 
       this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
-        type: 'AssignAuthorizationProfileToMediumMapi',
-        data: {
-          authorizationProfileId: profileId,
-          id: mediumId,
-        },
+        type,
+        data,
       } as CommandRequest);
     });
   }
 
   /**
-   * Assigns a person to a medium.
+   * Dispatches an RB command to the broker.
    *
-   * @param {string} personId
-   * @param {string} mediumId
-   * @throws
-   * @returns {CommandResponse}
+   * @param {CommandRelais} type
+   * @param {HashMap<any>} data
    */
-  async assignPersonToMedium(
-    personId: string,
-    mediumId: string,
-  ): Promise<CommandResponse> {
+  async rb(type: CommandRelais, data: HashMap<any>) {
     if (!this.mqttBrokerService.isConnected()) {
-      return Promise.reject(new Error('Query failed: not connected to broker'));
+      throw new Error('Command failed: not connected to broker');
     }
     return new Promise<CommandResponse>((resolver) => {
       this.resolver = resolver;
 
-      this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
-        type: 'AssignPersonToMediumMapi',
-        data: {
-          personId: personId,
-          id: mediumId,
-        },
+      this.eventEmitter.emit(EVENT_RB_REQUEST, {
+        type,
+        data,
       } as CommandRequest);
     });
   }
 
   /**
-   * Perform a remote disengage.
-   *
-   * @param {string} installationPointId
-   * @param {boolean} extended
-   * @throws
-   * @returns {CommandResponse}
-   */
-  async remoteDisengage(
-    installationPointId: string,
-    extended: boolean,
-  ): Promise<CommandResponse> {
-    if (!this.mqttBrokerService.isConnected()) {
-      return Promise.reject(new Error('Query failed: not connected to broker'));
-    }
-    return new Promise<CommandResponse>((resolver) => {
-      this.resolver = resolver;
-
-      this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
-        type: 'RemoteDisengage',
-        data: {
-          installationPointId: installationPointId,
-          extended: extended,
-        },
-      } as CommandRequest);
-    });
-  }
-
-  /**
-   * Perform a remote permanent disengage.
-   *
-   * @param {string} installationPointId
-   * @param {boolean} enable
-   * @throws
-   * @returns {CommandResponse}
-   */
-  async remoteDisengagePermanent(
-    installationPointId: string,
-    enable: boolean,
-  ): Promise<CommandResponse> {
-    if (!this.mqttBrokerService.isConnected()) {
-      return Promise.reject(new Error('Query failed: not connected to broker'));
-    }
-    return new Promise<CommandResponse>((resolver) => {
-      this.resolver = resolver;
-
-      this.eventEmitter.emit(EVENT_CQRS_REQUEST, {
-        type: 'RemoteDisengagePermanent',
-        data: {
-          installationPointId: installationPointId,
-          enable: enable,
-        },
-      } as CommandRequest);
-    });
-  }
-
-  /**
-   * Event handler for new command responses from broker.
+   * Event handler for new CQRS responses from broker.
    *
    * @param {any} response
    * @protected
    */
   @OnEvent(EVENT_CQRS_RESPONSE, { async: true })
-  protected onCommandResponse(@Payload() response: CommandResponse) {
+  protected onCQRSResponse(@Payload() response: CommandResponse) {
+    if (this.resolver) {
+      this.resolver(response);
+      this.resolver = null;
+    }
+  }
+
+  /**
+   * Event handler for new RB responses from broker.
+   *
+   * @param {any} response
+   * @protected
+   */
+  @OnEvent(EVENT_RB_RESPONSE, { async: true })
+  protected onRBResponse(@Payload() response: CommandResponse) {
+    if (this.resolver) {
+      this.resolver(response);
+      this.resolver = null;
+    }
+  }
+
+  /**
+   * Event handler for error responses from broker.
+   *
+   * @param {any} response
+   * @protected
+   */
+  @OnEvent(EVENT_ERROR_RESPONSE, { async: true })
+  protected onErrorResponse(@Payload() response: CommandResponse) {
     if (this.resolver) {
       this.resolver(response);
       this.resolver = null;

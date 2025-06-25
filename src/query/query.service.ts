@@ -5,7 +5,7 @@ import {
   EVENT_QUERY_PAGED_RESPONSE,
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
-import { HashTable } from '../common/interface';
+import { HashMap } from '../common/interface';
 import {
   Query,
   QueryPaged,
@@ -26,7 +26,7 @@ import { v4 as uuidv4 } from 'uuid';
 export class QueryService {
   private readonly logger = new Logger('QueryService');
 
-  private queryRequests: HashTable<QueryTable> = {};
+  private queryRequests: HashMap<QueryTable> = {};
   private pageSize = 50;
 
   constructor(

@@ -1,6 +1,7 @@
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
-import { CommandDataRelaisBoardConfig } from '../command/command';
+import { CommandCQRS, CommandDataRelaisBoardConfig } from '../command/command';
 import { CommandService } from '../command/command.service';
+import { HashMap } from '../common/interface';
 import { QueryService } from '../query/query.service';
 import {
   Query,
@@ -57,10 +58,11 @@ export class ClientService {
     return this.queryService.queryPaged(q);
   }
 
-  async commandRelaisBoard(rb: string, config: CommandDataRelaisBoardConfig) {
-    return this.commandService.commandRelaisBoard({
-      rb,
-      config,
-    });
+  async commandCQRS(type: CommandCQRS, data: HashMap<any>) {
+    return this.commandService.cqrs(type, data);
+  }
+
+  async commandRB(rb: string, config: CommandDataRelaisBoardConfig) {
+    return this.commandService.rb('ConfigureRelaisBoard', { rb, config });
   }
 }
