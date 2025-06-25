@@ -225,13 +225,18 @@ export class MqttBrokerService implements Broker {
   /**
    * Publishes a CQRS command to the broker.
    *
-   * @param {CommandRequest} payload
+   * @param {CommandRequest} request
    */
   @OnEvent(EVENT_CQRS_REQUEST, { async: true })
-  public async publishCQRSCommand(payload: CommandRequest) {
+  public async publishCQRSCommand(request: CommandRequest) {
     try {
-      const topic = `${BROKER_TOPIC_PREFIXES.CMD}/${payload.type}`;
-      const dataStr = JSON.stringify(payload.data);
+      const topic = `${BROKER_TOPIC_PREFIXES.CMD}/${request.type}`;
+      const data = {
+        token: this.options.token,
+        commandId: request.commandId,
+        ...request.data,
+      };
+      const dataStr = JSON.stringify(data);
 
       await this.mqttService.publish(topic, dataStr);
 
@@ -244,19 +249,20 @@ export class MqttBrokerService implements Broker {
   }
 
   /**
-   * Publishes a RB command to the broker.
+   * Publishes an RB command to the broker.
    *
-   * @param {CommandRequest} payload
+   * @param {CommandRequest} request
    */
   @OnEvent(EVENT_RB_REQUEST, { async: true })
-  public async publishRelaisBoardCommand(payload: CommandRequest) {
+  public async publishRelaisBoardCommand(request: CommandRequest) {
     try {
-      const topic = `${BROKER_TOPIC_PREFIXES.RB}/${(payload.data as CommandDataRelaisBoard).rb}/do`;
+      const topic = `${BROKER_TOPIC_PREFIXES.RB}/${(request.data as CommandDataRelaisBoard).rb}/do`;
       const dataStr = JSON.stringify(
-        (payload.data as CommandDataRelaisBoard).config,
+        (request.data as CommandDataRelaisBoard).config,
       );
 
       await this.mqttService.publish(topic, dataStr);
+      this.eventEmitter.emit(EVENT_RB_RESPONSE, null);
 
       this.logger.verbose(
         `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
