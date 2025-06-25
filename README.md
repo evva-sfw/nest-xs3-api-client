@@ -97,11 +97,17 @@ export type Resource =
 Execute specific CQRS commands on the Xesar API.
 
 ```typescript
-let result = await this.clientService.remoteDisengageCommand(
-  'a034bfda-c569-49a0-a3ba-d438d65eeb34',
-  false,
+let result = await this.clientService.commandCQRS(
+  'RequestAddMediumToInstallationMapi',
+  {
+    id: 'id',
+    commandId: 'commandId',
+    terminalId: 'terminalId',
+    hardwareId: 'hardwareId',
+  },
 );
 ```
+> For a full list of supported commands and parameters check the /api/docs of your installation.
 
 ## License
 
