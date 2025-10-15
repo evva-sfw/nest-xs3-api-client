@@ -36,7 +36,7 @@ jobs:
       # OIDC requires npm v11.5.1 or later
       # Node.js v20 comes with v10.8, so we need to update it:
       - name: Update NPM
-        run: npm install -g npm@latest
+        run: npm install -g npm@11.6.2
 
       - name: Cache node_modules
         id: node-modules
