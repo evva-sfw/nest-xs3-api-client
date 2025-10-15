@@ -32,6 +32,12 @@ jobs:
         uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
         with:
           node-version: lts/*
+
+      # OIDC requires npm v11.5.1 or later
+      # Node.js v20 comes with v10.8, so we need to update it:
+      - name: Update NPM
+        run: npm install -g npm@11.6.2
+
       - name: Cache node_modules
         id: node-modules
         uses: actions/cache@0c907a75c2c80ebcb7f088228285e798b750cf8f # v4.2.1
