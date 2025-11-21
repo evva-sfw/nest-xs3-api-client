@@ -1,6 +1,6 @@
 {
     "name": "@evva/nest-xs3-api-client",
-    "version": "3.0.4",
+    "version": "3.0.5",
     "description": "Client implementation for the Xesar 3 MQTT api interface.",
     "private": false,
     "author": "EVVA Sicherheitstechnologie GmbH",
