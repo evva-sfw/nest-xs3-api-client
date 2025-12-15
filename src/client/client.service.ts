@@ -65,4 +65,8 @@ export class ClientService {
   async commandRB(rb: string, config: CommandDataRelaisBoardConfig) {
     return this.commandService.rb('ConfigureRelaisBoard', { rb, config });
   }
+
+  isConnected(): boolean {
+    return this.mqttBrokerService.isConnected();
+  }
 }
