@@ -20,7 +20,7 @@ import {
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 @Injectable()
 export class QueryService {
@@ -73,7 +73,7 @@ export class QueryService {
       return Promise.reject(new Error('Query failed: not connected to broker'));
     }
     const request = {
-      requestId: uuidv4(),
+      requestId: randomUUID(),
       res: query.res,
       uuid: query.uuid,
     } as QueryRequest;
@@ -113,7 +113,7 @@ export class QueryService {
       return Promise.reject(new Error('Query failed: not connected to broker'));
     }
     const request = {
-      requestId: uuidv4(),
+      requestId: randomUUID(),
       res: query.res,
       offset: query.offset || 0,
       limit: query.limit || this.pageSize,

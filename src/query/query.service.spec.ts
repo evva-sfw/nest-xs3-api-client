@@ -10,7 +10,7 @@ import { QueryPagedRequest, QueryRequest } from './query.type';
 import { InjectionToken } from '@nestjs/common';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MockFunctionMetadata, ModuleMocker } from 'jest-mock';
+import { MockMetadata, ModuleMocker } from 'jest-mock';
 
 const moduleMocker = new ModuleMocker(global);
 
@@ -261,7 +261,7 @@ describe('QueryService', () => {
     if (typeof token === 'function') {
       const mockMetadata = moduleMocker.getMetadata(
         token,
-      ) as MockFunctionMetadata<any, any>;
+      ) as MockMetadata<any, any>;
       // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const Mock = moduleMocker.generateFromMetadata(mockMetadata);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
