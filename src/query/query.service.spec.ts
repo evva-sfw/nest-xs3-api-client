@@ -7,25 +7,25 @@ import {
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { QueryService } from './query.service';
 import { QueryPagedRequest, QueryRequest } from './query.type';
-import { InjectionToken } from '@nestjs/common';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MockMetadata, ModuleMocker } from 'jest-mock';
-
-const moduleMocker = new ModuleMocker(global);
+import { vi, describe, afterEach, beforeEach, it, expect, MockedObject } from 'vitest';
 
 describe('QueryService', () => {
   let moduleRef: TestingModule;
   let queryService: QueryService;
-  let mqttBrokerService: MqttBrokerService;
+  let mqttBrokerService: MockedObject<MqttBrokerService>;
   let eventEmitter: EventEmitter2;
 
   beforeEach(async () => {
+    mqttBrokerService = vi.mockObject(MqttBrokerService.prototype);
     moduleRef = await Test.createTestingModule({
       imports: [EventEmitterModule.forRoot()],
-      providers: [QueryService],
+      providers: [
+        QueryService,
+        { provide: MqttBrokerService, useValue: mqttBrokerService }
+      ],
     })
-      .useMocker(mockFactory)
       .compile();
 
     await moduleRef.init();
@@ -62,7 +62,7 @@ describe('QueryService', () => {
 
   describe('query()', () => {
     it('should throw on no connection', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
@@ -75,7 +75,7 @@ describe('QueryService', () => {
     });
 
     it('should emit EVENT_QUERY_SINGLE_REQUEST', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -97,7 +97,7 @@ describe('QueryService', () => {
     });
 
     it('should return query response', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -116,7 +116,7 @@ describe('QueryService', () => {
     });
 
     it('should return null on timeout', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -144,7 +144,7 @@ describe('QueryService', () => {
 
   describe('queryPaged()', () => {
     it('should throw on no connection', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
@@ -156,7 +156,7 @@ describe('QueryService', () => {
     });
 
     it('should emit EVENT_QUERY_PAGED_REQUEST', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -180,7 +180,7 @@ describe('QueryService', () => {
     });
 
     it('should return query response', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -206,7 +206,7 @@ describe('QueryService', () => {
     });
 
     it('should return paginated query response', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -232,7 +232,7 @@ describe('QueryService', () => {
     });
 
     it('should return null on timeout', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -256,23 +256,4 @@ describe('QueryService', () => {
       expect(result).toBeNull();
     });
   });
-
-  const mockFactory = (token: InjectionToken) => {
-    if (typeof token === 'function') {
-      const mockMetadata = moduleMocker.getMetadata(
-        token,
-      ) as MockMetadata<any, any>;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const Mock = moduleMocker.generateFromMetadata(mockMetadata);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
-      const mock = new Mock();
-
-      if (mockMetadata.name === 'MqttBrokerService') {
-        mqttBrokerService = mock as MqttBrokerService;
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return mock;
-    }
-    return {};
-  };
 });
