@@ -1,5 +1,7 @@
 name: Release and publish
 on:
+  push:
+    branches: [chore/update-workflows]
   workflow_dispatch:
     inputs:
       input_version:
