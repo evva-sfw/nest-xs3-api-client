@@ -21,7 +21,7 @@ env:
 jobs:
 
   bump-version:
-    uses: vman101/workflow-test/.github/workflows/git-cliff-node-version-bump@main
+    uses: vman101/workflow-test/.github/workflows/git-cliff-node-version-bump.yml@main
     with:
       client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
       github-host: github.com
@@ -43,7 +43,7 @@ jobs:
           egress-policy: audit
 
       - name: Setup Git
-        uses: vman101/workflow-test/actions/configure-git@main
+        uses: vman101/workflow-test/configure-git@main
         id: git-setup
         with:
           client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
@@ -51,7 +51,7 @@ jobs:
           github-host: github.com
 
       - name: Setup git cliff
-        uses: vman101/workflow-test/actions/git-cliff-setup@main
+        uses: vman101/workflow-test/git-cliff-setup@main
 
       # Check version from previous job accessible
       - name: Check version passed through to this job
@@ -75,8 +75,7 @@ jobs:
 
       - name: Build Package
         id: build-package
-        working-directory: ${{ github.workspace }}
-        uses: vman101/workflow-test/actions/build-npm.yml@main
+        uses: vman101/workflow-test/build-npm@main
 
       - name: Publish
         id: publish
