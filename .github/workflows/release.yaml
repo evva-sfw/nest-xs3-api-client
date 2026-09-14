@@ -23,7 +23,6 @@ env:
   GIT_CLIFF_VERSION: "2.13.1"
 
 jobs:
-
   bump-version:
     uses: vman101/workflow-test/.github/workflows/git-cliff-node-version-bump.yml@main
     with:
