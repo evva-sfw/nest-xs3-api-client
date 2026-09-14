@@ -1,0 +1,48 @@
+name: Install git cliff
+description: Fetch and install git cliff for future steps
+
+inputs:
+  git-cliff-version:
+    description: Git cliff version
+    required: false
+    default: "2.13.1"
+
+  runner-platform:
+    description: "Platform the runner runs on (default for ubuntu-latest: x86_64-unknown-linux-gnu)"
+    required: false
+    default: x86_64-unknown-linux-gnu
+
+outputs:
+  git-cliff-path:
+    description: Install path for git cliff
+    value: ${{ steps.install-git-cliff.outputs.git-cliff-path }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check required git cliff files in repo
+      shell: bash
+      run: |
+        if [[ ! -f cliff.toml ]]; then
+          echo "Error: cliff.toml must be present in repo root"
+          exit 1
+        fi
+
+    # Git cliff versions https://github.com/orhun/git-cliff/releases
+    - name: Download and install git-cliff binary
+      id: install-git-cliff
+      env:
+        GIT_CLIFF_VERSION: ${{ inputs.git-cliff-version }}
+        GIT_CLIFF_PLATFORM: ${{ inputs.runner-platform }}
+      shell: bash
+      run: |
+        set -e
+        if [ -z "$GIT_CLIFF_VERSION" ] ; then
+            echo "Error: GIT_CLIFF_VERSION is not set...exiting..."
+            exit 1
+        fi
+        curl -fLO "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-${GIT_CLIFF_PLATFORM}.tar.gz"
+        tar -xvzf git-cliff-*.tar.gz
+        mv "./git-cliff-${GIT_CLIFF_VERSION}/git-cliff" "/usr/local/bin/git-cliff"
+        rm -rf "./git-cliff-${GIT_CLIFF_VERSION}" *.tar.gz
+        echo "git-cliff-path=/usr/local/bin/git-cliff" >> "$GITHUB_OUTPUT"

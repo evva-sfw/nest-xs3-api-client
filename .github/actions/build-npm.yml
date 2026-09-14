@@ -1,0 +1,33 @@
+name: Build node release
+description: Build node npm project generic
+
+outputs:
+  outdir:
+    description: Output directory of runner
+    value: ${{ steps.build.outputs.outdir }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+      with:
+        node-version: lts/*
+
+    - name: Run Build
+      id: build
+      shell: bash
+      run: |
+        npm ci && npm run build
+        echo "outdir=dist" >> "$GITHUB_OUTPUT"
+
+    - name: Check output
+      shell: bash
+      run: |
+        if [[ ! -d ./dist ]]; then
+          echo "::error::Output expected in 'dist/'"
+          exit 1
+        fi
+        if [[ -z "$(ls -A ./dist)" ]]; then
+          echo "::error::'dist/' is empty"
+          exit 1
+        fi

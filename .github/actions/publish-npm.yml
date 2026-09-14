@@ -1,0 +1,42 @@
+name: Publish package (NPM)
+description: Publishes a package to a given npm registry
+
+inputs:
+  registry:
+    description: "Target Registry URL (default: https://registry.npmjs.org)"
+    required: false
+    default: "https://registry.npmjs.org"
+  token:
+    description: Authentication token to registry
+    required: false
+  projectDir:
+    description: Root project directory of npm package
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Publish
+      shell: bash
+      env:
+        NPM_TARGET_REGISTRY: ${{ inputs.registry }}
+        AUTH_TOKEN: ${{ inputs.token }}
+        NPM_TARGET_DIR: ${{ inputs.projectDir }}
+      run: |
+        set -euo pipefail
+
+        REGISTRY="${NPM_TARGET_REGISTRY%/}"
+
+        if [[ ! -f "$NPM_TARGET_DIR/package.json" ]]; then
+          echo "::error::No package.json in '$NPM_TARGET_DIR'"
+          exit 1
+        fi
+
+        if [[ -n "$AUTH_TOKEN" ]]; then
+          NPMRC="$(mktemp)"
+          trap 'rm -f "$NPMRC"' EXIT
+          export NPM_CONFIG_USERCONFIG="$NPMRC"
+          echo "${REGISTRY#*:}/:_authToken=${AUTH_TOKEN}" > "$NPMRC"
+        fi
+
+        npm publish "$NPM_TARGET_DIR" --registry "$REGISTRY"

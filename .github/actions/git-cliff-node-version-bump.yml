@@ -1,0 +1,137 @@
+name: Bump Version NPM
+
+on:
+  workflow_call:
+    inputs:
+      release-type:
+        description: Type of release (major, minor, patch)
+        required: false
+        type: string
+      commit-message:
+        description: Commit message for the bump
+        required: false
+        default: "docs: Updated package files with new version"
+        type: string
+      runner-platform:
+        description: "Platform the runner runs on (default for ubuntu-latest: x86_64-unknown-linux-gnu)"
+        required: false
+        default: x86_64-unknown-linux-gnu
+        type: string
+      client-id:
+        description: Github App ID
+        required: true
+        type: string
+      private-key:
+        description: Github App private key
+        required: true
+        type: string
+      github-host:
+        description: Hostname of Github or GHE instance
+        required: true
+        type: string
+
+    outputs:
+      new-tag:
+        description: The version that was bumped
+        value: ${{ jobs.bump-version.outputs.new-tag }}
+      app-name:
+        description: Package name from package.json
+        value: ${{ jobs.bump-version.outputs.app-name }}
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      version: ${{ steps.version.outputs.new-tag }}
+      app-name: ${{ steps.app-name.outputs.app-name }}
+
+    steps:
+      - name: Setup Repo
+        uses: EVVA_ACTIONS_REPO/configure-git@main
+        id: app-token
+
+      - name: Install git cliff
+        uses: EVVA_ACTIONS_REPO/git-cliff-install@main
+
+
+      - name: Declare release type
+        env:
+          USER_INPUT_VERSION: ${{ inputs.release-type }}
+        shell: bash
+        run: |
+          if [[ ! -z "$USER_INPUT_VERSION" ]] ; then
+            echo "Type of release:$USER_INPUT_VERSION from user ${GITHUB_ACTOR}"
+          else
+            echo "User did not select release type. It will be automatically determined..."
+          fi
+
+      # Get the latest tag info, increment it accordingly, update the package.json file so it reflects the new version
+      # NOTE better to place $VERSION_TYPE without quotation marks as passing empty string "" will cause an error - but empty var will just be ignored
+      - name: Update version info for build
+        id: version
+        env:
+          VERSION_TYPE: ${{ inputs.release-type }}
+        shell: bash
+        run: |
+            set -e
+            git-cliff --bump $VERSION_TYPE --bumped-version > version
+            echo "New version will be $(cat version)"
+            NEW_TAG=$(cat version)
+            echo "new-tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
+            rm version
+
+      - name: Update version info in package files
+        env:
+          NEW_TAG: ${{ steps.version.outputs.new-tag }}
+          WORKSPACE_PACKAGE_JSON: "${{ github.workspace }}/package.json"
+          WORKSPACE_PACKAGE_JSON_LOCK: "${{ github.workspace }}/package-lock.json"
+        shell: bash
+        run: |
+            set -e
+            echo '::group:: Preparing files with updated versions'
+
+            echo "New version will be $NEW_TAG"
+            jq --arg version "$NEW_TAG" '.version = $version' "$WORKSPACE_PACKAGE_JSON" > temp.json && \
+              mv temp.json "$WORKSPACE_PACKAGE_JSON"
+            jq --arg version "$NEW_TAG" '.version = $version' "$WORKSPACE_PACKAGE_JSON_LOCK" > temp.json && \
+              mv temp.json "$WORKSPACE_PACKAGE_JSON_LOCK"
+            jq --arg version "$NEW_TAG" '.packages[""].version = $version' "$WORKSPACE_PACKAGE_JSON_LOCK" > temp.json && \
+              mv temp.json "$WORKSPACE_PACKAGE_JSON_LOCK"
+
+            echo '::endgroup::'
+
+            echo '::group:: Reading package.json'
+            cat "$WORKSPACE_PACKAGE_JSON"
+            echo '::endgroup::'
+
+            echo '::group:: Reading package-lock.json'
+            cat "$WORKSPACE_PACKAGE_JSON_LOCK"
+            echo '::endgroup::'
+
+
+      - name: Commit & Push changes
+        uses: iarekylew00t/verified-bot-commit@5b4e8852dc472093935b8debcb81459bb79f7986 # v2.3.2
+        with:
+          ref: main
+          token: ${{ steps.app-token.outputs.token }}
+          message: ${{ inputs.commit-message }}
+          files: |
+            package.json
+            package-lock.json
+
+      - name: Pull new changes
+        shell: bash
+        run: |
+          git pull --ff-only
+
+       # Get app name from package.json
+      - name: Get app name from package.json
+        id: app-name
+        shell: bash
+        run: |
+            set -e
+            APP_NAME=$(cat package.json | jq -r '.name')
+            echo "App name will be $APP_NAME"
+            echo "app-name=$APP_NAME" >> "$GITHUB_OUTPUT"

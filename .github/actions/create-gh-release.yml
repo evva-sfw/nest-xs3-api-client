@@ -1,0 +1,29 @@
+name: Generate Release notes
+description: Generate Release notes
+
+# Update assets below to reflect built binaries (if binaries were produced)
+- name: Create a release on Github with release notes
+  env:
+    GH_TOKEN: ${{ steps.app-token.outputs.token }}
+    GH_HOST: github.com
+    TAG_NAME: ${{ needs.bump-version.outputs.new-tag }}
+  run: |
+   set -e
+    # No assets for this release - only docker image on registry
+    gh release create "$TAG_NAME" --target $(git rev-parse HEAD) --notes "Generating..." --title "$TAG_NAME"
+    echo "Fetching just created tag"
+    for i in {1..5}; do
+      git fetch origin refs/tags/"$TAG_NAME":refs/tags/"$TAG_NAME" && break
+      echo "Waiting for tag to be created on remote..."
+      sleep 0.5
+    done
+
+# Use git cliff to generate release notes
+- name: Generate release notes and update release
+  env:
+    GH_TOKEN: ${{ steps.app-token.outputs.token }}
+    GH_HOST: github.com
+    TAG_NAME: ${{ needs.bump-version.outputs.new-tag }}
+  run: |
+    git-cliff -c cliff.toml --current --output ${{ runner.temp }}/RELEASE_NOTES.md
+    gh release edit "$TAG_NAME" --notes-file "${{ runner.temp }}/RELEASE_NOTES.md" --latest

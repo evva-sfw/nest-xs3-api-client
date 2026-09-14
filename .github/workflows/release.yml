@@ -76,3 +76,69 @@ jobs:
         uses: actions/attest-build-provenance@520d128f165991a6c774bcb264f323e3d70747f4 # v2.2.0
         with:
           subject-path: '${{ github.workspace }}/*.tgz'
+
+
+  update-changelog:
+    needs: [bump-version, build]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      # Create Github App Token
+      - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        id: app-token
+        with:
+          # required
+          client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
+          # Private key from vault https://vault.service.consul:8200/ui/vault/secrets/secret/show/infrastructure/services/external/github-enterprise/github-apps/evva-bee
+          private-key: ${{ secrets.GLOBAL_APP_EVVA_BEE_PRIVATE_KEY }}
+
+      # Get GitHub App User ID
+      - name: Get GitHub App User ID
+        id: get-user-id
+        run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          GH_HOST: evva.ghe.com
+      - run: |
+          git config --global user.name '${{ steps.app-token.outputs.app-slug }}[bot]'
+          git config --global user.email '${{ steps.get-user-id.outputs.user-id }}+${{ steps.app-token.outputs.app-slug }}[bot]@users.noreply.github.com'
+
+      - name: Checkout repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0 # For release-it and auto-changelog to be able to generate the full changelog
+          fetch-tags: true
+          token: ${{ steps.app-token.outputs.token }}
+          ref: main
+
+    # Git cliff versions https://github.com/orhun/git-cliff/releases
+      - name: Download and install git-cliff binary
+        env:
+          GIT_CLIFF_VERSION: ${{ env.GIT_CLIFF_VERSION }}
+        run: |
+          set -e
+          if [ -z "$GIT_CLIFF_VERSION" ] ; then
+              echo "Error: GIT_CLIFF_VERSION is not set...exiting..."
+              exit 1
+          fi
+          curl -LO "https://github.com/orhun/git-cliff/releases/download/v${GIT_CLIFF_VERSION}/git-cliff-${GIT_CLIFF_VERSION}-x86_64-unknown-linux-gnu.tar.gz"
+          tar -xvzf git-cliff-*.tar.gz
+          mv "./git-cliff-${GIT_CLIFF_VERSION}/git-cliff" "/usr/local/bin/git-cliff"
+          rm -rf "./git-cliff-${GIT_CLIFF_VERSION}" *.tar.gz
+
+      - name: Generate changelog using git cliff and cliff-changelog config
+        run: |
+          set -e
+          git-cliff -c cliff-changelog.toml -o CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Commit & Push changes
+        uses: iarekylew00t/verified-bot-commit@5b4e8852dc472093935b8debcb81459bb79f7986 # v2.3.2
+        with:
+          ref: main
+          token:  ${{ steps.app-token.outputs.token }}
+          message: "docs: Updated changelog"
+          files: |
+            CHANGELOG.md

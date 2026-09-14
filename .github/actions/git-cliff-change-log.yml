@@ -1,0 +1,56 @@
+name: Generate Changelog
+
+on:
+  workflow_call:
+    inputs:
+      client-id:
+        description: Github App ID
+        required: true
+        type: string
+      private-key:
+        description: Github App private key
+        required: true
+        type: string
+      github-host:
+        description: Hostname of Github or GHE instance
+        required: true
+        type: string
+      git-cliff-version:
+        description: Git cliff version
+        required: false
+        default: "2.13.1"
+        type: string
+
+jobs:
+  changelog:
+    runs-on: ubuntu-latest
+    permissions:
+      content: write
+    steps:
+      # Configure and checkout git repo
+      - uses: EVVA_ACTIONS_REPO/configure-git@main
+        id: app-token
+        with:
+          client-id: ${{ inputs.client-id }}
+          private-key: ${{ inputs.private-key }}
+          github-host: ${{ inputs.github-host }}
+
+      # Install git cliff
+      - uses: EVVA_ACTIONS_REPO/git-cliff-install@main
+        with:
+          git-cliff-version: ${{ inputs.git-cliff-version }}
+
+      - name: Generate changelog using git cliff and cliff-changelog config
+        run: |
+          set -e
+          git-cliff -c cliff-changelog.toml -o CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: Commit & Push changes
+        uses: iarekylew00t/verified-bot-commit@5b4e8852dc472093935b8debcb81459bb79f7986 # v2.3.2
+        with:
+          ref: main
+          token:  ${{ steps.app-token.outputs.token }}
+          message: "docs: Updated changelog"
+          files: |
+            CHANGELOG.md

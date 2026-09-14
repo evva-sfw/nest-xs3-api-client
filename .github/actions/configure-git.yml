@@ -1,0 +1,59 @@
+name: Configure and checkout git
+description: Get App token and setup git for future steps
+
+inputs:
+  client-id:
+    description: Github App ID
+    required: true
+  private-key:
+    description: Github App private key
+    required: true
+  github-host:
+    description: Hostname of Github or GHE instance
+    required: true
+
+outputs:
+  token:
+    description: Holds auth token from app
+    value: ${{ steps.app-token.outputs.token }}
+
+runs:
+  using: composite
+  steps:
+    # Create Github App Token
+    - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      id: app-token
+      with:
+        # required
+        client-id: ${{ inputs.client-id }}
+        private-key: ${{ inputs.private-key }}
+
+    # Copy repo to action runner
+    - name: Checkout repository
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      with:
+        fetch-depth: 0 # For git cliff to be able to generate the full changelog
+        fetch-tags: true
+        token: ${{ steps.app-token.outputs.token }}
+        ref: main
+        persist-credentials: true
+
+    # Get GitHub App User ID
+    - name: Get GitHub App User ID
+      id: get-user-id
+      shell: bash
+      run: echo "user-id=$(gh api "/users/${{ steps.app-token.outputs.app-slug }}[bot]" --jq .id)" >> "$GITHUB_OUTPUT"
+      env:
+        GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        GH_HOST: ${{ inputs.github-host }}
+
+    - name: Configure git identity
+      shell: bash
+      env:
+        APP_SLUG: ${{ steps.app-token.outputs.app-slug }}
+        USER_ID: ${{ steps.get-user-id.outputs.user-id }}
+        SERVER_URL: ${{ github.server_url }}
+      run: |
+        HOST="${SERVER_URL#https://}"
+        git config --global user.name "${APP_SLUG}[bot]"
+        git config --global user.email "${USER_ID}+${APP_SLUG}[bot]@users.noreply.${HOST}"

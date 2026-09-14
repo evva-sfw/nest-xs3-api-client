@@ -1,0 +1,100 @@
+name: Release and publish
+on:
+  workflow_dispatch:
+    inputs:
+      input_version:
+        type: choice
+        description: What type of release?
+        options:
+          - ""
+          - patch
+          - minor
+          - major
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+# Dont need permissions because we use github app and not the workflow permissions
+permissions: {}
+env:
+  GIT_CLIFF_VERSION: "2.13.1"
+jobs:
+
+  prepare:
+    runs-on: ubuntu-latest
+    # Create Github App Token
+    - uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+      id: app-token
+      with:
+        # required
+        client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
+        private-key: ${{ secrets.GLOBAL_APP_EVVA_BEE_PRIVATE_KEY }}
+
+  bump-version:
+    uses: vman101/workflow-test/workflows/git-cliff-node-version-bump@main
+    with:
+      client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
+      private-key: ${{ secrets.GLOBAL_APP_EVVA_BEE_PRIVATE_KEY }}
+      github-host: github.com
+      release-type: ${{ github.event.inputs.input_version }}
+
+######################################## Build Packages Ubuntu ###############################################
+  build-package:
+    needs: bump-version
+    permissions:
+      contents: write
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden Runner
+        uses: step-security/harden-runner@05e31511f85b41b11d1cf0ef85d0992719546e2c # v2.21.0
+        with:
+          egress-policy: audit
+
+      - name: Setup Git
+        uses: vman101/workflow-test/actions/configure-git@main
+        id: git-setup
+        with:
+          client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
+          private-key: ${{ secrets.GLOBAL_APP_EVVA_BEE_PRIVATE_KEY }}
+          github-host: github.com
+
+      - name: Setup git cliff
+        uses: vman101/workflow-test/actions/git-cliff-setup@main
+
+      # Check version from previous job accessible
+      - name: Check version passed through to this job
+        env:
+          NEW_TAG: ${{ needs.bump-version.outputs.new-tag }}
+        run: |
+          set -e
+          echo "Version from previous job is ${{ needs.bump-version.outputs.new-tag }}"
+          echo "As env variable it is $NEW_TAG"
+          PACKAGE_JSON_VERSION=$(jq .version -r package.json)
+          echo "Version in package.json file is $PACKAGE_JSON_VERSION"
+          if [[ "$NEW_TAG" != $PACKAGE_JSON_VERSION ]]; then
+            echo "::error:: Error: New version from previous job does not match version in current package.json"
+            exit 1
+          fi
+
+      # OIDC requires npm v11.5.1 or later
+      # Node.js v20 comes with v10.8, so we need to update it:
+      - name: Update NPM
+        run: npm install -g npm@11.6.2
+
+      - name: Build Package
+        id: build-package
+        working-directory: ${{ github.workspace }}
+        uses: vman101/workflow-test/actions/build-npm.yml@main
+
+      - name: Publish
+        id: publish
+        uses: vman101/workflow-test/actions/publish-npm.yml@main
+        with:
+          token: ${{ steps.git-setup.outputs.token }}
+          projectDir: ${{ github.workspace }}
+
+  update-changelog:
+    uses: vman101/workflow-test/workflows/git-cliff-change-log@main
+    with:
+      client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
+      private-key: ${{ secrets.GLOBAL_APP_EVVA_BEE_PRIVATE_KEY }}
+      github-host: github.com
