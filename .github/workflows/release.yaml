@@ -12,6 +12,7 @@ on:
           - patch
           - minor
           - major
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
