@@ -10,10 +10,14 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - name: Setup NodeJS
-        uses: actions/setup-node@1d0ff469b7ec7b3cb9d8673fde0c81c44821de2a # v4.2.0
+      - name: Setup Git
+        uses: vman101/workflow-test/configure-git@main
+        id: git-setup
         with:
-          node-version: lts/*
-      - name: Run Build
-        run: npm ci && npm run build
+          client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
+          private-key: ${{ secrets.GLOBAL_APP_EVVA_BEE_PRIVATE_KEY }}
+          github-host: github.com
+
+      - name: Build Package
+        id: build-package
+        uses: vman101/workflow-test/build-npm@main

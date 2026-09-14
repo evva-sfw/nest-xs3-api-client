@@ -83,7 +83,7 @@ jobs:
 
       - name: Publish
         id: publish
-        uses: vman101/workflow-test/actions/publish-npm@main
+        uses: vman101/workflow-test/publish-npm@main
         with:
           token: ${{ steps.git-setup.outputs.token }}
           projectDir: ${{ github.workspace }}
