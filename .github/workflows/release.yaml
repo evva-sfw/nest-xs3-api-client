@@ -16,6 +16,7 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
+
 # Dont need permissions because we use github app and not the workflow permissions
 permissions: {}
 env:
