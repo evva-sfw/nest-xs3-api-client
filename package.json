@@ -40,7 +40,7 @@
         "client"
     ],
     "dependencies": {
-        "@evva/nest-mqtt": "file:../nest-mqtt",
+        "@evva/nest-mqtt": "^3.0.0",
         "@nestjs/event-emitter": "^12.0.0",
         "@typescript-eslint/parser": "^8.70.0"
     },

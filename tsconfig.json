@@ -1,6 +1,5 @@
 {
-    "include": ["src/**/*"],
-    "exclude": ["node_modules", "dist"],
+  "include": ["src/**/*"],
   "compilerOptions": {
     "allowJs": true,
     "allowSyntheticDefaultImports": true,
@@ -22,7 +21,6 @@
     "strictBindCallApply": false,
     "strictNullChecks": true,
     "strict": false,
-    "target": "ES2023",
-    "typeRoots": ["node_modules/@types"]
+    "target": "ES2023"
   }
 }
