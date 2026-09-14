@@ -86,7 +86,7 @@ jobs:
           projectDir: ${{ github.workspace }}
 
   update-changelog:
-    uses: vman101/workflow-test/workflows/git-cliff-change-log@main
+    uses: vman101/workflow-test/workflows/git-cliff-change-log.yml@main
     with:
       client-id: ${{ vars.GLOBAL_APP_EVVA_BEE_APP_ID }}
       github-host: github.com
