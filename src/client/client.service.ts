@@ -33,7 +33,7 @@ export class ClientService {
         clientId: options.clientId,
         token: options.token,
       } as ClientConnectOptions);
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`Failed to connect to broker: ${e}`);
       return false;
     }
@@ -43,7 +43,7 @@ export class ClientService {
   async disconnect(): Promise<boolean> {
     try {
       await this.mqttBrokerService.disconnect();
-    } catch (e) {
+    } catch (e: any) {
       this.logger.error(`Failed to disconnect from broker: ${e}`);
       return false;
     }

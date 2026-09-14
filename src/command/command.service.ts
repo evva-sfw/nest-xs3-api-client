@@ -3,11 +3,16 @@ import {
   EVENT_CQRS_RESPONSE,
   EVENT_ERROR_RESPONSE,
   EVENT_RB_REQUEST,
-  EVENT_RB_RESPONSE
+  EVENT_RB_RESPONSE,
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { HashMap } from '../common/interface';
-import { CommandRequest, CommandResolver, CommandResponse, CommandCQRS, CommandRelais } from './command';
+import {
+  CommandResolver,
+  CommandResponse,
+  CommandCQRS,
+  CommandRelais,
+} from './command';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
@@ -16,7 +21,7 @@ import { randomUUID } from 'node:crypto';
 @Injectable()
 export class CommandService {
   private cqrsRequests: HashMap<CommandResolver> = {};
-  private rbRequest: CommandResolver;
+  private rbRequest: CommandResolver | null = null;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,
@@ -41,7 +46,7 @@ export class CommandService {
         commandId,
         type,
         data,
-      } as CommandRequest);
+      });
     });
   }
 
@@ -61,7 +66,7 @@ export class CommandService {
       this.eventEmitter.emit(EVENT_RB_REQUEST, {
         type,
         data,
-      } as CommandRequest);
+      });
     });
   }
 

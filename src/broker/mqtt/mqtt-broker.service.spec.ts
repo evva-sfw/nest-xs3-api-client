@@ -13,11 +13,10 @@ import {
 } from '../broker.constants';
 import { BROKER_TOPIC_PREFIXES, BROKER_TOPICS } from './mqtt-broker.constants';
 import { MqttBrokerService } from './mqtt-broker.service';
-import { MqttService } from '@evva/nest-mqtt';
+import { MqttPacket, MqttService } from '@evva/nest-mqtt';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
 import { it, expect, vi, describe, beforeEach, afterEach, MockedObject, } from 'vitest';
-import { MqttClient } from 'mqtt';
 
 describe('MqttBrokerService', () => {
   let moduleRef: TestingModule;
@@ -32,10 +31,9 @@ describe('MqttBrokerService', () => {
       imports: [EventEmitterModule.forRoot()],
       providers: [
         MqttBrokerService,
-        { provide: MqttService, useValue: mqttService }
+        { provide: MqttService, useValue: mqttService },
       ],
-    })
-      .compile();
+    }).compile();
 
     await moduleRef.init();
 
@@ -54,21 +52,25 @@ describe('MqttBrokerService', () => {
   describe('isConnected()', () => {
     it('should return true on connected', () => {
       mqttService.getClient.mockImplementation(() => {
-        return { connected: true } as unknown as MqttClient;
+        return { connected: true } as ReturnType<
+          MqttService['getClient']
+        >;
       });
       expect(mqttBrokerService.isConnected()).toBeTruthy();
     });
 
     it('should return false on no connection', () => {
       mqttService.getClient.mockImplementation(() => {
-        return { connected: false } as unknown as MqttClient;
+        return { connected: false } as ReturnType<
+          MqttService['getClient']
+        >;
       });
       expect(mqttBrokerService.isConnected()).toBeFalsy();
     });
 
     it('should return false on no client', () => {
       mqttService.getClient.mockImplementation(() => {
-        return null as MqttClient;
+        return undefined;
       });
       expect(mqttBrokerService.isConnected()).toBeFalsy();
     });
@@ -158,12 +160,12 @@ describe('MqttBrokerService', () => {
   describe('publishQuery()', () => {
     it('should publish to BROKER_TOPICS.QUERY_OUT', async () => {
       const promise = new Promise<string>((res) => {
-        mqttService
-          .publish
-          .mockImplementation((topic: string) => {
+        mqttService.publish.mockImplementation(
+          (topic: string) => {
             res(topic);
-            return null;
-          });
+            return {} as Promise<MqttPacket>;
+          },
+        );
       });
       void mqttBrokerService.publishQuery({} as QueryRequest);
 
@@ -174,12 +176,12 @@ describe('MqttBrokerService', () => {
   describe('publishPageQuery()', () => {
     it('should publish to BROKER_TOPICS.QUERY_OUT', async () => {
       const promise = new Promise<string>((res) => {
-        mqttService
-          .publish
-          .mockImplementation((topic: string) => {
+        mqttService.publish.mockImplementation(
+          (topic: string) => {
             res(topic);
-            return null;
-          });
+            return {} as Promise<MqttPacket>;
+          },
+        );
       });
       void mqttBrokerService.publishPageQuery({} as QueryPagedRequest);
 
@@ -191,12 +193,12 @@ describe('MqttBrokerService', () => {
     it('should publish to BROKER_TOPIC_PREFIXES.CMD', async () => {
       const type = 'Login';
       const promise = new Promise<string>((res) => {
-        mqttService
-          .publish
-          .mockImplementation((topic: string) => {
+        mqttService.publish.mockImplementation(
+          (topic: string) => {
             res(topic);
-            return null;
-          });
+            return {} as Promise<MqttPacket>;
+          },
+        );
       });
       void mqttBrokerService.publishCQRSCommand({
         type: type,

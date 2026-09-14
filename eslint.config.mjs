@@ -1,11 +1,11 @@
 // @ts-check
 import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
-import { globalIgnores } from 'eslint/config';
+import { defineConfig, globalIgnores } from 'eslint/config';
 import globals from 'globals';
 import eslintTS from 'typescript-eslint';
 
-export default eslintTS.config(
+export default defineConfig(
   {
     ignores: ['eslint.config.mjs'],
   },

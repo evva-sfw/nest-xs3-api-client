@@ -31,7 +31,7 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 @Injectable()
 export class MqttBrokerService implements Broker {
   private readonly logger = new Logger('MqttBrokerService');
-  private options: MqttBrokerConnectOptions;
+  private options?: MqttBrokerConnectOptions;
 
   constructor(
     @Inject(MqttService) private readonly mqttService: MqttService,
@@ -175,7 +175,7 @@ export class MqttBrokerService implements Broker {
   public async publishQuery(request: QueryRequest) {
     try {
       const data = {
-        token: this.options.token,
+        token: this.options?.token,
         requestId: request.requestId,
         resource: request.res,
         id: request.uuid,
@@ -187,7 +187,7 @@ export class MqttBrokerService implements Broker {
       this.logger.verbose(
         `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
       );
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`Failed to publish single query: ${err}`);
     }
   }
@@ -201,7 +201,7 @@ export class MqttBrokerService implements Broker {
   public async publishPageQuery(request: QueryPagedRequest) {
     try {
       const data = {
-        token: this.options.token,
+        token: this.options?.token,
         requestId: request.requestId,
         resource: request.res,
         params: {
@@ -217,7 +217,7 @@ export class MqttBrokerService implements Broker {
       this.logger.verbose(
         `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
       );
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`Failed to publish page query: ${err}`);
     }
   }
@@ -232,7 +232,7 @@ export class MqttBrokerService implements Broker {
     try {
       const topic = `${BROKER_TOPIC_PREFIXES.CMD}/${request.type}`;
       const data = {
-        token: this.options.token,
+        token: this.options?.token,
         commandId: request.commandId,
         ...request.data,
       };
@@ -243,7 +243,7 @@ export class MqttBrokerService implements Broker {
       this.logger.verbose(
         `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
       );
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`Failed to publish command: ${err}`);
     }
   }
@@ -267,7 +267,7 @@ export class MqttBrokerService implements Broker {
       this.logger.verbose(
         `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
       );
-    } catch (err) {
+    } catch (err: any) {
       this.logger.error(`Failed to publish command: ${err}`);
     }
   }
