@@ -91,7 +91,11 @@ jobs:
           VERSION_TYPE: ${{ github.event.inputs.input_version }}
         run: |
             set -e
-            git-cliff --bump $VERSION_TYPE --bumped-version > version
+            if [[ "$VERSION_TYPE" == 'infer' ]]; then
+              git-cliff --bump --bumped-version > version
+            else
+              git-cliff --bump $VERSION_TYPE --bumped-version > version
+            fi
             echo "New version will be $(cat version)"
             NEW_TAG=$(cat version)
             echo "new-tag=$NEW_TAG" >> "$GITHUB_OUTPUT"
@@ -105,16 +109,15 @@ jobs:
             set -e
             echo '::group:: Preparing files with updated versions'
             echo "New version will be $NEW_TAG"
-            jq --arg version "$NEW_TAG" '.version = $version' ${{ github.workspace }}/package.json > temp.json && mv temp.json ${{ github.workspace }}/package.json
-            jq --arg version "$NEW_TAG" '.version = $version' ${{ github.workspace }}/package-lock.json > temp.json && mv temp.json ${{ github.workspace }}/package-lock.json
-            jq --arg version "$NEW_TAG" '.packages[""].version = $version' ${{ github.workspace }}/package-lock.json > temp.json && mv temp.json ${{ github.workspace }}/package-lock.json
+            npm version "$NEW_TAG" --no-git-tag-version
             echo '::endgroup::'
             echo '::group:: Reading package.json'
             cat ${{ github.workspace }}/package.json
             echo '::endgroup::'
             echo '::group:: Reading package-lock.json'
-            cat ${{ github.workspace }}/package-lock.json
+            head ${{ github.workspace }}/package-lock.json
             echo '::endgroup::'
+
 
         # Update the version in the repo package files and commit
       - name: Commit & Push changes
