@@ -25,7 +25,7 @@ import {
   BROKER_TOPICS,
 } from './mqtt-broker.constants';
 import { MqttService, Payload, Subscribe } from '@evva/nest-mqtt';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 
 @Injectable()
@@ -34,8 +34,8 @@ export class MqttBrokerService implements Broker {
   private options?: MqttBrokerConnectOptions;
 
   constructor(
-    @Inject(MqttService) private readonly mqttService: MqttService,
-    @Inject(EventEmitter2) private readonly eventEmitter: EventEmitter2,
+    private readonly mqttService: MqttService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   /**
