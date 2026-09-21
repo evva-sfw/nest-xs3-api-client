@@ -4,12 +4,9 @@ import {
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { CommandService } from './command.service';
-import { InjectionToken } from '@nestjs/common';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
-import { MockMetadata, ModuleMocker } from 'jest-mock';
-
-const moduleMocker = new ModuleMocker(global);
+import { vi, it, expect, describe, afterEach, beforeEach } from "vitest";
 
 describe('CommandService', () => {
   let moduleRef: TestingModule;
@@ -18,11 +15,11 @@ describe('CommandService', () => {
   let eventEmitter: EventEmitter2;
 
   beforeEach(async () => {
+    mqttBrokerService = vi.mockObject(MqttBrokerService.prototype);
     moduleRef = await Test.createTestingModule({
       imports: [EventEmitterModule.forRoot()],
-      providers: [CommandService],
+      providers: [CommandService, { provide: MqttBrokerService, useValue: mqttBrokerService }],
     })
-      .useMocker(mockFactory)
       .compile();
 
     await moduleRef.init();
@@ -45,7 +42,7 @@ describe('CommandService', () => {
     };
 
     it('should throw on no connection', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => false);
 
@@ -53,7 +50,7 @@ describe('CommandService', () => {
     });
 
     it('should emit EVENT_CQRS_REQUEST', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -69,7 +66,7 @@ describe('CommandService', () => {
     });
 
     it('should return command response', async () => {
-      jest
+      vi
         .spyOn(mqttBrokerService, 'isConnected')
         .mockImplementation(() => true);
 
@@ -83,23 +80,4 @@ describe('CommandService', () => {
       expect(result?.commandId).toBe(commandId);
     });
   });
-
-  const mockFactory = (token: InjectionToken) => {
-    if (typeof token === 'function') {
-      const mockMetadata = moduleMocker.getMetadata(
-        token,
-      ) as MockMetadata<any, any>;
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-      const Mock = moduleMocker.generateFromMetadata(mockMetadata);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call,@typescript-eslint/no-unsafe-assignment
-      const mock = new Mock();
-
-      if (mockMetadata.name === 'MqttBrokerService') {
-        mqttBrokerService = mock as MqttBrokerService;
-      }
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-      return mock;
-    }
-    return {};
-  };
 });

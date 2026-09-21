@@ -122,6 +122,7 @@ export class QueryService {
 
     this.queryRequests[request.requestId] = {
       resource: query.res,
+      task: () => {},
       filters: query.filters,
       autoPaginate: !query.limit && !query.offset,
       pageHandlers: [this.handlePage.bind(this) as QueryPageHandler],
@@ -186,7 +187,7 @@ export class QueryService {
     const query = this.queryRequests[response.requestId];
     if (!query) return;
 
-    query.result.push(response);
+    query.result = [...query.result ?? [], response];
 
     if (query.pageOne && query.autoPaginate) {
       if (query.filters) {
@@ -201,12 +202,12 @@ export class QueryService {
       query.pageOne = false;
     }
 
-    if (query.pageRequests.length > 0) {
+    if (query.pageRequests && query.pageRequests.length > 0) {
       this.logger.debug(`Auto-paginating with pageSize {${this.pageSize}}`);
 
-      const r = query.pageRequests.pop();
+      const r = query.pageRequests.pop()!;
 
-      query.pageHandlers.push(this.handlePage.bind(this) as QueryPageHandler);
+      query.pageHandlers?.push(this.handlePage.bind(this) as QueryPageHandler);
 
       this.eventEmitter.emit(EVENT_QUERY_PAGED_REQUEST, {
         requestId: response.requestId,
@@ -214,7 +215,7 @@ export class QueryService {
         offset: r.pageOffset,
         limit: r.pageLimit,
         filters: query.filters,
-      } as QueryPagedRequest);
+      });
     } else {
       query.task(query.result);
       clearTimeout(this.queryRequests[response.requestId].taskTimeout);

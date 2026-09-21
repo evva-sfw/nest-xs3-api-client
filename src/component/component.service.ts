@@ -99,6 +99,8 @@ export class ComponentService {
         return '0x0302 UPDATE_KEY';
       case COMPONENT_EVENTS.MIDNIGHT_DEBUG:
         return '0x0C07 MIDNIGHT_DEBUG';
+      default:
+        throw new Error(`EventId ${eventId} is not handled`);
     }
   }
 }
