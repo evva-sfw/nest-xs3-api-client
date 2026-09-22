@@ -5,6 +5,9 @@
 /conf
 *.tgz
 
+# Audit
+*.spdx
+
 # Logs
 logs
 *.log

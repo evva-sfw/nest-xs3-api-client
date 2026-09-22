@@ -17,6 +17,7 @@
         "test:cov": "vitest run --coverage",
         "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/vitest --runInBand",
         "test:e2e": "vitest run --config ./test/vitest-e2e.json",
+        "audit:sbom": "npm sbom --omit=dev --omit=optional --package-lock-only=true --sbom-format spdx --sbom-type application > $(basename $npm_package_name-sbom.spdx)",
         "prepack": "npx nest build"
     },
     "main": "dist/index.js",
