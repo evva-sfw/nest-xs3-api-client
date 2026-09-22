@@ -103,13 +103,25 @@ jobs:
 
     # Apply latest tag info update the package.json file so it is built with new version
       - name: Update version info in package files
+        id: update-version
         env:
           NEW_TAG: ${{ steps.version.outputs.new-tag }}
         run: |
             set -e
             echo '::group:: Preparing files with updated versions'
             echo "New version will be $NEW_TAG"
-            npm version "$NEW_TAG" --no-git-tag-version
+            current_tag=$(jq -r .version package.json)
+
+            # check if version changed, and only run version command then
+            # output to signal version changed and changes should be commited
+            #
+            if [[ "$current_tag" == "${NEW_TAG#v}" ]]; then
+              echo "Version already bumped, skipping this step"
+              echo "should-commit=false" >> "$GITHUB_OUTPUT"
+            else
+              npm version "$NEW_TAG" --no-git-tag-version
+              echo "should-commit=true" >> "$GITHUB_OUTPUT"
+            fi
             echo '::endgroup::'
             echo '::group:: Reading package.json'
             cat ${{ github.workspace }}/package.json
@@ -120,7 +132,9 @@ jobs:
 
 
         # Update the version in the repo package files and commit
+        # checking if anything changed in the previous step to know if we should commit anything
       - name: Commit & Push changes
+        if: ${{ steps.update-version.outputs.should-commit == 'true' }}
         uses: iarekylew00t/verified-bot-commit@5b4e8852dc472093935b8debcb81459bb79f7986 # v2.3.2
         with:
           ref: main
