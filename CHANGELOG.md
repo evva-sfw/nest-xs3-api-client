@@ -1,3 +1,8 @@
+## [3.0.16](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.15...3.0.16) - 2026-09-22
+
+### 🧹 Chore
+
+- Fix declarationDir in tsconfig ([#49](https://github.com/evva-sfw/nest-xs3-api-client/pull/49))
 ## [3.0.15](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.14...3.0.15) - 2026-09-22
 
 ### 🚀 Continuous Integration
