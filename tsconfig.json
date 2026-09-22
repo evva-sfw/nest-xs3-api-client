@@ -6,6 +6,7 @@
     "allowSyntheticDefaultImports": true,
     "rootDir": "./src",
     "declaration": true,
+    "declarationDir": "./dist/types/",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
@@ -22,7 +23,6 @@
     "strictBindCallApply": false,
     "strictNullChecks": true,
     "strict": false,
-    "target": "ES2023",
-    "typeRoots": ["node_modules/@types"]
+    "target": "ES2023"
   }
 }
