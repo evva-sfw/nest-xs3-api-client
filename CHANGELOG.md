@@ -1,19 +1,16 @@
-## [3.0.16](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.15...3.0.16) - 2026-09-22
-
-### 🧹 Chore
-
-- Fix declarationDir in tsconfig ([#49](https://github.com/evva-sfw/nest-xs3-api-client/pull/49))
-## [3.0.15](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.14...3.0.15) - 2026-09-22
+## [4.0.0](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.14...4.0.0) - 2026-09-30
 
 ### 🚀 Continuous Integration
 
 - Update to NestJS 12 and update release workflow ([#46](https://github.com/evva-sfw/nest-xs3-api-client/pull/46))
 - Fix workflow version bump when version already matches new version ([#48](https://github.com/evva-sfw/nest-xs3-api-client/pull/48))
+- Updated release workflow to manually bump semantic version ([#52](https://github.com/evva-sfw/nest-xs3-api-client/pull/52))
 
 ### 🧹 Chore
 
 - *(deps)* Bump form-data from 4.0.5 to 4.0.6 ([#43](https://github.com/evva-sfw/nest-xs3-api-client/pull/43))
 - *(deps)* Upgrade nest-cli to ^12 ([#47](https://github.com/evva-sfw/nest-xs3-api-client/pull/47))
+- Fix declarationDir in tsconfig ([#49](https://github.com/evva-sfw/nest-xs3-api-client/pull/49))
 ## [3.0.14](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.13...3.0.14) - 2026-06-02
 
 ### 🛡️ Security
