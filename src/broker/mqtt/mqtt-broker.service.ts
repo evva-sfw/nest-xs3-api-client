@@ -10,6 +10,8 @@ import {
   EVENT_CQRS_REQUEST,
   EVENT_CQRS_RESPONSE,
   EVENT_ERROR_RESPONSE,
+  EVENT_BROKER_DISCONNECTED,
+  EVENT_QUERY_MALFORMED_RESPONSE,
   EVENT_QUERY_PAGED_REQUEST,
   EVENT_QUERY_PAGED_RESPONSE,
   EVENT_QUERY_SINGLE_REQUEST,
@@ -32,6 +34,10 @@ import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';
 export class MqttBrokerService implements Broker {
   private readonly logger = new Logger('MqttBrokerService');
   private options?: MqttBrokerConnectOptions;
+  private logPayloads = false;
+  private monitoredClient?: ReturnType<MqttService['getClient']>;
+  private readonly handleOffline = () =>
+    this.eventEmitter.emit(EVENT_BROKER_DISCONNECTED);
 
   constructor(
     private readonly mqttService: MqttService,
@@ -46,6 +52,7 @@ export class MqttBrokerService implements Broker {
    */
   public async connect(options: MqttBrokerConnectOptions) {
     this.options = options;
+    this.logPayloads = options.logPayloads ?? false;
 
     await this.mqttService.connect({
       host: options.host,
@@ -54,18 +61,29 @@ export class MqttBrokerService implements Broker {
       ca: options.ca,
       key: options.key,
       protocol: 'mqtts',
-      rejectUnauthorized: false,
+      rejectUnauthorized: true,
+      // In the case of skipHostnameVerification we forward the option to
+      // Node's TLS stream builder.
+      // https://beta.docs.nodejs.org/tls/checkServerIdentity
+      ...(options.skipHostnameVerification
+        ? { checkServerIdentity: () => undefined }
+        : {}),
       autoSubscribe: true,
       clean: true,
       topicResolver: (varname: string) => {
-        switch (varname) {
-          case 'userId':
-            return options.clientId;
-          default:
-            throw new Error(`Unsupported topic variable: ${varname}`);
+        if (varname === 'userId') {
+          return options.clientId;
+        } else {
+          throw new Error(`Unsupported topic variable: ${varname}`);
         }
       },
     });
+
+    const client = this.mqttService.getClient();
+    if (client && client !== this.monitoredClient) {
+      this.monitoredClient = client;
+      client.on('offline', this.handleOffline);
+    }
   }
 
   /**
@@ -74,6 +92,7 @@ export class MqttBrokerService implements Broker {
    * @throws
    */
   public async disconnect() {
+    this.eventEmitter.emit(EVENT_BROKER_DISCONNECTED);
     return this.mqttService.disconnect();
   }
 
@@ -94,9 +113,11 @@ export class MqttBrokerService implements Broker {
    */
   @Subscribe(BROKER_TOPICS.CQRS_EVENTS)
   public handleCQRSEvent(@Payload() payload: object) {
-    this.logger.verbose(
-      `Message received\n\ttopic: ${BROKER_TOPICS.CQRS_EVENTS}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
-    );
+    if (this.logPayloads) {
+      this.logger.verbose(
+        `Message received\n\ttopic: ${BROKER_TOPICS.CQRS_EVENTS}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+      );
+    }
     this.eventEmitter.emit(EVENT_CQRS_RESPONSE, payload);
   }
 
@@ -108,9 +129,11 @@ export class MqttBrokerService implements Broker {
    */
   @Subscribe(BROKER_TOPICS.ACCESS_PROTOCOL)
   public handleAccessProtocolEvent(@Payload() payload: object) {
-    this.logger.verbose(
-      `Message received\n\ttopic: ${BROKER_TOPICS.ACCESS_PROTOCOL}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
-    );
+    if (this.logPayloads) {
+      this.logger.verbose(
+        `Message received\n\ttopic: ${BROKER_TOPICS.ACCESS_PROTOCOL}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+      );
+    }
     this.eventEmitter.emit(EVENT_ACCESS_PROTOCOL_RECEIVED, payload);
   }
 
@@ -126,10 +149,27 @@ export class MqttBrokerService implements Broker {
   public handleQueryResponseEvent(
     @Payload() payload: QueryResponse | QueryPagedResponse,
   ) {
-    this.logger.verbose(
-      `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.QUERY_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
-    );
-    if (payload.response.hasOwnProperty('totalCount')) {
+    if (this.logPayloads) {
+      this.logger.verbose(
+        `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.QUERY_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+      );
+    }
+
+    const requestId = payload?.requestId;
+    const response = payload?.response;
+    if (
+      typeof requestId !== 'string' ||
+      !response ||
+      typeof response !== 'object' ||
+      Array.isArray(response)
+    ) {
+      if (typeof requestId === 'string') {
+        this.eventEmitter.emit(EVENT_QUERY_MALFORMED_RESPONSE, { requestId });
+      }
+      return;
+    }
+
+    if (Object.hasOwn(response, 'totalCount')) {
       this.eventEmitter.emit(EVENT_QUERY_PAGED_RESPONSE, payload);
     } else {
       this.eventEmitter.emit(EVENT_QUERY_SINGLE_RESPONSE, payload);
@@ -146,9 +186,11 @@ export class MqttBrokerService implements Broker {
     `${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}`,
   )
   public handleQueryErrorEvent(@Payload() payload: any) {
-    this.logger.verbose(
-      `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
-    );
+    if (this.logPayloads) {
+      this.logger.verbose(
+        `Message received\n\ttopic: ${BROKER_TOPIC_PREFIXES.BASE}/{userId}/${BROKER_TOPIC_SUFFIXES.ERROR_IN}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+      );
+    }
     this.eventEmitter.emit(EVENT_ERROR_RESPONSE, payload);
   }
 
@@ -160,9 +202,11 @@ export class MqttBrokerService implements Broker {
    */
   @Subscribe(`${BROKER_TOPICS.RB_DIAG}`)
   public handleRelaisBoardCommandEvent(@Payload() payload: any) {
-    this.logger.verbose(
-      `Message received\n\ttopic: ${BROKER_TOPICS.RB_DIAG}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
-    );
+    if (this.logPayloads) {
+      this.logger.verbose(
+        `Message received\n\ttopic: ${BROKER_TOPICS.RB_DIAG}\n\tdata: ${payload ? JSON.stringify(payload) : null}`,
+      );
+    }
     this.eventEmitter.emit(EVENT_RB_RESPONSE, payload);
   }
 
@@ -184,11 +228,18 @@ export class MqttBrokerService implements Broker {
 
       await this.mqttService.publish(BROKER_TOPICS.QUERY_OUT, dataStr);
 
-      this.logger.verbose(
-        `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
-      );
-    } catch (err: any) {
-      this.logger.error(`Failed to publish single query: ${err}`);
+      if (this.logPayloads) {
+        this.logger.verbose(
+          `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
+        );
+      }
+    } catch {
+      this.eventEmitter.emit(EVENT_ERROR_RESPONSE, {
+        correlationId: request.requestId,
+        error: 503,
+        reason: 'Failed to publish query to Xesar',
+      });
+      this.logger.error('Failed to publish single query');
     }
   }
 
@@ -214,11 +265,18 @@ export class MqttBrokerService implements Broker {
 
       await this.mqttService.publish(BROKER_TOPICS.QUERY_OUT, dataStr);
 
-      this.logger.verbose(
-        `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
-      );
-    } catch (err: any) {
-      this.logger.error(`Failed to publish page query: ${err}`);
+      if (this.logPayloads) {
+        this.logger.verbose(
+          `Message published\n\ttopic: ${BROKER_TOPICS.QUERY_OUT}\n\tdata: ${dataStr}`,
+        );
+      }
+    } catch {
+      this.eventEmitter.emit(EVENT_ERROR_RESPONSE, {
+        correlationId: request.requestId,
+        error: 503,
+        reason: 'Failed to publish query to Xesar',
+      });
+      this.logger.error('Failed to publish page query');
     }
   }
 
@@ -240,11 +298,13 @@ export class MqttBrokerService implements Broker {
 
       await this.mqttService.publish(topic, dataStr);
 
-      this.logger.verbose(
-        `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
-      );
-    } catch (err: any) {
-      this.logger.error(`Failed to publish command: ${err}`);
+      if (this.logPayloads) {
+        this.logger.verbose(
+          `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
+        );
+      }
+    } catch {
+      this.logger.error('Failed to publish command');
     }
   }
 
@@ -264,11 +324,13 @@ export class MqttBrokerService implements Broker {
       await this.mqttService.publish(topic, dataStr);
       this.eventEmitter.emit(EVENT_RB_RESPONSE, null);
 
-      this.logger.verbose(
-        `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
-      );
-    } catch (err: any) {
-      this.logger.error(`Failed to publish command: ${err}`);
+      if (this.logPayloads) {
+        this.logger.verbose(
+          `Message published\n\ttopic: ${topic}\n\tdata: ${dataStr}`,
+        );
+      }
+    } catch {
+      this.logger.error('Failed to publish command');
     }
   }
 }
