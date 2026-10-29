@@ -45,6 +45,33 @@ export type QueryPagedResponse = {
   };
 };
 
+export type QueryErrorResponse = {
+  correlationId?: string;
+  error: number;
+  reason?: string | null;
+};
+
+export type QueryErrorCode =
+  | 'permission'
+  | 'validation'
+  | 'not-found'
+  | 'timeout'
+  | 'upstream'
+  | 'disconnected'
+  | 'malformed-response';
+
+export class QueryError extends Error {
+  constructor(
+    readonly code: QueryErrorCode,
+    message: string,
+    readonly correlationId?: string,
+    readonly statusCode?: number,
+  ) {
+    super(message);
+    this.name = 'QueryError';
+  }
+}
+
 export type QueryResolver = (
   value:
     | (QueryResponse | PromiseLike<QueryResponse>)
@@ -55,6 +82,8 @@ export type QueryPageHandler = (response: QueryPagedResponse) => void;
 
 export type QueryTable = {
   task: QueryResolver;
+  kind?: 'single' | 'paged';
+  reject?: (error: QueryError) => void;
   taskTimeout?: NodeJS.Timeout;
   autoPaginate?: boolean;
   pageHandlers?: QueryPageHandler[];

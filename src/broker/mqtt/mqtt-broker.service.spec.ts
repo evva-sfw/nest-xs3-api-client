@@ -6,17 +6,29 @@ import {
 } from '../../query/query.type';
 import {
   EVENT_ACCESS_PROTOCOL_RECEIVED,
+  EVENT_BROKER_DISCONNECTED,
   EVENT_CQRS_RESPONSE,
   EVENT_ERROR_RESPONSE,
+  EVENT_QUERY_MALFORMED_RESPONSE,
   EVENT_QUERY_PAGED_RESPONSE,
   EVENT_QUERY_SINGLE_RESPONSE,
 } from '../broker.constants';
 import { BROKER_TOPIC_PREFIXES, BROKER_TOPICS } from './mqtt-broker.constants';
 import { MqttBrokerService } from './mqtt-broker.service';
 import { MqttPacket, MqttService } from '@evva/nest-mqtt';
+import { Logger } from '@nestjs/common';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
-import { it, expect, vi, describe, beforeEach, afterEach, MockedObject, } from 'vitest';
+import { EventEmitter } from 'node:events';
+import {
+  it,
+  expect,
+  vi,
+  describe,
+  beforeEach,
+  afterEach,
+  MockedObject,
+} from 'vitest';
 
 describe('MqttBrokerService', () => {
   let moduleRef: TestingModule;
@@ -52,18 +64,14 @@ describe('MqttBrokerService', () => {
   describe('isConnected()', () => {
     it('should return true on connected', () => {
       mqttService.getClient.mockImplementation(() => {
-        return { connected: true } as ReturnType<
-          MqttService['getClient']
-        >;
+        return { connected: true } as ReturnType<MqttService['getClient']>;
       });
       expect(mqttBrokerService.isConnected()).toBeTruthy();
     });
 
     it('should return false on no connection', () => {
       mqttService.getClient.mockImplementation(() => {
-        return { connected: false } as ReturnType<
-          MqttService['getClient']
-        >;
+        return { connected: false } as ReturnType<MqttService['getClient']>;
       });
       expect(mqttBrokerService.isConnected()).toBeFalsy();
     });
@@ -73,6 +81,45 @@ describe('MqttBrokerService', () => {
         return undefined;
       });
       expect(mqttBrokerService.isConnected()).toBeFalsy();
+    });
+  });
+
+  describe('connect()', () => {
+    it('validates the broker certificate and emits unexpected disconnects', async () => {
+      const mqttClient = new EventEmitter() as unknown as NonNullable<
+        ReturnType<MqttService['getClient']>
+      >;
+      mqttService.connect.mockResolvedValue(undefined);
+      mqttService.getClient.mockReturnValue(mqttClient);
+      const disconnected = new Promise<void>((resolve) => {
+        eventEmitter.once(EVENT_BROKER_DISCONNECTED, () => resolve());
+      });
+
+      await mqttBrokerService.connect({
+        host: 'broker.local',
+        port: 8883,
+        protocol: 'mqtts',
+        clientId: 'maintainer',
+        token: 'test-token',
+      });
+      const defaultOptions = mqttService.connect.mock.calls.at(-1)?.[0];
+      expect(defaultOptions).toMatchObject({ rejectUnauthorized: true });
+      expect(defaultOptions?.checkServerIdentity).toBeUndefined();
+
+      await mqttBrokerService.connect({
+        host: 'broker.local',
+        port: 8883,
+        protocol: 'mqtts',
+        clientId: 'maintainer',
+        token: 'test-token',
+        skipHostnameVerification: true,
+      });
+      const diagnosticOptions = mqttService.connect.mock.calls.at(-1)?.[0];
+      expect(diagnosticOptions).toMatchObject({ rejectUnauthorized: true });
+      expect(diagnosticOptions?.checkServerIdentity).toBeTypeOf('function');
+
+      mqttClient.emit('offline');
+      await disconnected;
     });
   });
 
@@ -140,6 +187,17 @@ describe('MqttBrokerService', () => {
 
       expect(result.response?.hasOwnProperty('foo')).toBeTruthy();
     });
+
+    it('routes a response without an envelope to the malformed-response event', async () => {
+      const malformed = new Promise<{ requestId: string }>((resolve) => {
+        eventEmitter.once(EVENT_QUERY_MALFORMED_RESPONSE, resolve);
+      });
+      mqttBrokerService.handleQueryResponseEvent({
+        requestId,
+        response: null,
+      } as unknown as QueryResponse);
+      await expect(malformed).resolves.toEqual({ requestId });
+    });
   });
 
   describe('handleQueryErrorEvent()', () => {
@@ -160,28 +218,35 @@ describe('MqttBrokerService', () => {
   describe('publishQuery()', () => {
     it('should publish to BROKER_TOPICS.QUERY_OUT', async () => {
       const promise = new Promise<string>((res) => {
-        mqttService.publish.mockImplementation(
-          (topic: string) => {
-            res(topic);
-            return {} as Promise<MqttPacket>;
-          },
-        );
+        mqttService.publish.mockImplementation((topic: string) => {
+          res(topic);
+          return {} as Promise<MqttPacket>;
+        });
       });
       void mqttBrokerService.publishQuery({} as QueryRequest);
 
       expect(await promise).toBe(BROKER_TOPICS.QUERY_OUT);
+    });
+
+    it('does not log payloads by default', async () => {
+      const verbose = vi.spyOn(Logger.prototype, 'verbose');
+      await mqttBrokerService.publishQuery({
+        requestId: 'request-id',
+        res: 'persons',
+        uuid: 'entity-id',
+      });
+
+      expect(verbose).not.toHaveBeenCalled();
     });
   });
 
   describe('publishPageQuery()', () => {
     it('should publish to BROKER_TOPICS.QUERY_OUT', async () => {
       const promise = new Promise<string>((res) => {
-        mqttService.publish.mockImplementation(
-          (topic: string) => {
-            res(topic);
-            return {} as Promise<MqttPacket>;
-          },
-        );
+        mqttService.publish.mockImplementation((topic: string) => {
+          res(topic);
+          return {} as Promise<MqttPacket>;
+        });
       });
       void mqttBrokerService.publishPageQuery({} as QueryPagedRequest);
 
@@ -193,12 +258,10 @@ describe('MqttBrokerService', () => {
     it('should publish to BROKER_TOPIC_PREFIXES.CMD', async () => {
       const type = 'Login';
       const promise = new Promise<string>((res) => {
-        mqttService.publish.mockImplementation(
-          (topic: string) => {
-            res(topic);
-            return {} as Promise<MqttPacket>;
-          },
-        );
+        mqttService.publish.mockImplementation((topic: string) => {
+          res(topic);
+          return {} as Promise<MqttPacket>;
+        });
       });
       void mqttBrokerService.publishCQRSCommand({
         type: type,

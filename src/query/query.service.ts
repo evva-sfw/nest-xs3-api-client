@@ -3,6 +3,9 @@ import {
   EVENT_QUERY_SINGLE_REQUEST,
   EVENT_QUERY_SINGLE_RESPONSE,
   EVENT_QUERY_PAGED_RESPONSE,
+  EVENT_ERROR_RESPONSE,
+  EVENT_BROKER_DISCONNECTED,
+  EVENT_QUERY_MALFORMED_RESPONSE,
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { HashMap } from '../common/interface';
@@ -15,7 +18,10 @@ import {
   QueryPageRequest,
   QueryRequest,
   QueryResponse,
+  QueryResolver,
   QueryTable,
+  QueryErrorResponse,
+  QueryError,
 } from './query.type';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
@@ -70,7 +76,10 @@ export class QueryService {
     timeout: number = 5000,
   ): Promise<QueryResponse | null> {
     if (!this.mqttBrokerService.isConnected()) {
-      return Promise.reject(new Error('Query failed: not connected to broker'));
+      throw new QueryError(
+        'disconnected',
+        'Query failed: not connected to broker',
+      );
     }
     const request = {
       requestId: randomUUID(),
@@ -78,19 +87,28 @@ export class QueryService {
       uuid: query.uuid,
     } as QueryRequest;
 
-    this.eventEmitter.emit(EVENT_QUERY_SINGLE_REQUEST, request);
-
-    return Promise.race([
-      new Promise<QueryResponse>((resolver) => {
-        this.queryRequests[request.requestId] = { task: resolver };
-      }),
-      new Promise<null>((resolver) => {
-        this.queryRequests[request.requestId].taskTimeout = setTimeout(() => {
+    return new Promise<QueryResponse | null>((resolve, reject) => {
+      this.queryRequests[request.requestId] = {
+        kind: 'single',
+        task: resolve as QueryResolver,
+        reject,
+        taskTimeout: setTimeout(() => {
           delete this.queryRequests[request.requestId];
-          resolver(null);
-        }, timeout);
-      }),
-    ]);
+          if (!this.mqttBrokerService.isConnected()) {
+            reject(
+              new QueryError(
+                'disconnected',
+                'Query interrupted because the broker disconnected',
+                request.requestId,
+              ),
+            );
+            return;
+          }
+          resolve(null);
+        }, timeout),
+      };
+      this.eventEmitter.emit(EVENT_QUERY_SINGLE_REQUEST, request);
+    });
   }
 
   /**
@@ -110,7 +128,10 @@ export class QueryService {
     timeout: number = 5000,
   ): Promise<QueryPagedResponse[] | null> {
     if (!this.mqttBrokerService.isConnected()) {
-      return Promise.reject(new Error('Query failed: not connected to broker'));
+      throw new QueryError(
+        'disconnected',
+        'Query failed: not connected to broker',
+      );
     }
     const request = {
       requestId: randomUUID(),
@@ -120,30 +141,36 @@ export class QueryService {
       filters: query.filters || [],
     } as QueryPagedRequest;
 
-    this.queryRequests[request.requestId] = {
-      resource: query.res,
-      task: () => {},
-      filters: query.filters,
-      autoPaginate: !query.limit && !query.offset,
-      pageHandlers: [this.handlePage.bind(this) as QueryPageHandler],
-      pageRequests: [],
-      pageOne: true,
-      result: [],
-    } as QueryTable;
-
-    this.eventEmitter.emit(EVENT_QUERY_PAGED_REQUEST, request);
-
-    return Promise.race([
-      new Promise<QueryPagedResponse[]>((resolver) => {
-        this.queryRequests[request.requestId].task = resolver;
-      }),
-      new Promise<null>((resolver) => {
-        this.queryRequests[request.requestId].taskTimeout = setTimeout(() => {
+    return new Promise<QueryPagedResponse[] | null>((resolve, reject) => {
+      this.queryRequests[request.requestId] = {
+        kind: 'paged',
+        resource: query.res,
+        task: resolve as QueryResolver,
+        reject,
+        filters: query.filters,
+        autoPaginate: !query.limit && !query.offset,
+        pageHandlers: [this.handlePage.bind(this) as QueryPageHandler],
+        pageRequests: [],
+        pageOne: true,
+        result: [],
+        taskTimeout: setTimeout(() => {
           delete this.queryRequests[request.requestId];
-          resolver(null);
-        }, timeout);
-      }),
-    ]);
+          if (!this.mqttBrokerService.isConnected()) {
+            reject(
+              new QueryError(
+                'disconnected',
+                'Query interrupted because the broker disconnected',
+                request.requestId,
+              ),
+            );
+            return;
+          }
+          resolve(null);
+        }, timeout),
+      } as QueryTable;
+
+      this.eventEmitter.emit(EVENT_QUERY_PAGED_REQUEST, request);
+    });
   }
 
   /**
@@ -154,11 +181,15 @@ export class QueryService {
    */
   @OnEvent(EVENT_QUERY_SINGLE_RESPONSE, { async: true })
   protected onQueryResponse(@Payload() response: QueryResponse) {
-    if (this.queryRequests[response.requestId]) {
-      this.queryRequests[response.requestId].task(response);
-      clearTimeout(this.queryRequests[response.requestId].taskTimeout);
-      delete this.queryRequests[response.requestId];
+    const request = this.queryRequests[response.requestId];
+    if (!request) return;
+    if (request.kind === 'paged') {
+      this.rejectMalformedResponse(response.requestId, request);
+      return;
     }
+    request.task(response);
+    clearTimeout(request.taskTimeout);
+    delete this.queryRequests[response.requestId];
   }
 
   /**
@@ -169,11 +200,86 @@ export class QueryService {
    */
   @OnEvent(EVENT_QUERY_PAGED_RESPONSE, { async: true })
   protected onQueryPagedResponse(@Payload() response: QueryPagedResponse) {
-    if (this.queryRequests[response.requestId]) {
-      const handler =
-        this.queryRequests[response.requestId].pageHandlers?.pop();
-      if (handler) handler(response);
+    const request = this.queryRequests[response.requestId];
+    if (!request) return;
+    if (request.kind === 'single') {
+      this.rejectMalformedResponse(response.requestId, request);
+      return;
     }
+    const handler = request.pageHandlers?.pop();
+    if (handler) handler(response);
+  }
+
+  @OnEvent(EVENT_QUERY_MALFORMED_RESPONSE, { async: true })
+  protected onMalformedQueryResponse(
+    @Payload() payload: { requestId?: string },
+  ) {
+    if (!payload.requestId) return;
+    const request = this.queryRequests[payload.requestId];
+    if (request) this.rejectMalformedResponse(payload.requestId, request);
+  }
+
+  private rejectMalformedResponse(requestId: string, request: QueryTable) {
+    clearTimeout(request.taskTimeout);
+    delete this.queryRequests[requestId];
+    request.reject?.(
+      new QueryError(
+        'malformed-response',
+        'Xesar returned a malformed query response',
+        requestId,
+      ),
+    );
+  }
+
+  /**
+   * Rejects a correlated query when Xesar publishes an API error.
+   * Command errors are ignored here because they have no matching query request.
+   */
+  @OnEvent(EVENT_ERROR_RESPONSE, { async: true })
+  protected onQueryError(@Payload() response: QueryErrorResponse) {
+    const correlationId = response.correlationId;
+    if (!correlationId) return;
+
+    const request = this.queryRequests[correlationId];
+    if (!request?.reject) return;
+
+    clearTimeout(request.taskTimeout);
+    delete this.queryRequests[correlationId];
+
+    const code = this.getQueryErrorCode(response.error);
+    request.reject(
+      new QueryError(
+        code,
+        response.reason || `Xesar query failed (${response.error})`,
+        correlationId,
+        response.error,
+      ),
+    );
+  }
+
+  @OnEvent(EVENT_BROKER_DISCONNECTED, { async: true })
+  protected onBrokerDisconnected() {
+    for (const [requestId, request] of Object.entries(this.queryRequests)) {
+      if (!request.reject) continue;
+
+      clearTimeout(request.taskTimeout);
+      delete this.queryRequests[requestId];
+      request.reject(
+        new QueryError(
+          'disconnected',
+          'Query interrupted because the broker disconnected',
+          requestId,
+        ),
+      );
+    }
+  }
+
+  private getQueryErrorCode(statusCode: number) {
+    if (statusCode === 401 || statusCode === 403) return 'permission' as const;
+    if (statusCode === 400 || statusCode === 422) return 'validation' as const;
+    if (statusCode === 404) return 'not-found' as const;
+    if (statusCode === 408 || statusCode === 504) return 'timeout' as const;
+    return 'upstream' as const;
   }
 
   /**
@@ -187,7 +293,7 @@ export class QueryService {
     const query = this.queryRequests[response.requestId];
     if (!query) return;
 
-    query.result = [...query.result ?? [], response];
+    query.result = [...(query.result ?? []), response];
 
     if (query.pageOne && query.autoPaginate) {
       if (query.filters) {
