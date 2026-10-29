@@ -62,17 +62,19 @@ export class MqttBrokerService implements Broker {
       key: options.key,
       protocol: 'mqtts',
       rejectUnauthorized: true,
+      // In the case of skipHostnameVerification we forward the option to
+      // Node's TLS stream builder.
+      // https://beta.docs.nodejs.org/tls/checkServerIdentity
       ...(options.skipHostnameVerification
         ? { checkServerIdentity: () => undefined }
         : {}),
       autoSubscribe: true,
       clean: true,
       topicResolver: (varname: string) => {
-        switch (varname) {
-          case 'userId':
-            return options.clientId;
-          default:
-            throw new Error(`Unsupported topic variable: ${varname}`);
+        if (varname === 'userId') {
+          return options.clientId;
+        } else {
+          throw new Error(`Unsupported topic variable: ${varname}`);
         }
       },
     });
@@ -167,7 +169,7 @@ export class MqttBrokerService implements Broker {
       return;
     }
 
-    if (Object.prototype.hasOwnProperty.call(response, 'totalCount')) {
+    if (Object.hasOwn(response, 'totalCount')) {
       this.eventEmitter.emit(EVENT_QUERY_PAGED_RESPONSE, payload);
     } else {
       this.eventEmitter.emit(EVENT_QUERY_SINGLE_RESPONSE, payload);

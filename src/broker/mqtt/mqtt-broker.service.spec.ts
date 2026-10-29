@@ -15,7 +15,7 @@ import {
 } from '../broker.constants';
 import { BROKER_TOPIC_PREFIXES, BROKER_TOPICS } from './mqtt-broker.constants';
 import { MqttBrokerService } from './mqtt-broker.service';
-import { MqttPacket, MqttService } from '@evva/nest-mqtt';
+import { MqttService } from '@evva/nest-mqtt';
 import { Logger } from '@nestjs/common';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -104,7 +104,7 @@ describe('MqttBrokerService', () => {
       });
       const defaultOptions = mqttService.connect.mock.calls.at(-1)?.[0];
       expect(defaultOptions).toMatchObject({ rejectUnauthorized: true });
-      expect(defaultOptions?.checkServerIdentity).toBeUndefined();
+      expect(defaultOptions).not.toHaveProperty('checkServerIdentity');
 
       await mqttBrokerService.connect({
         host: 'broker.local',
@@ -116,7 +116,9 @@ describe('MqttBrokerService', () => {
       });
       const diagnosticOptions = mqttService.connect.mock.calls.at(-1)?.[0];
       expect(diagnosticOptions).toMatchObject({ rejectUnauthorized: true });
-      expect(diagnosticOptions?.checkServerIdentity).toBeTypeOf('function');
+      expect(
+        typeof Reflect.get(diagnosticOptions ?? {}, 'checkServerIdentity'),
+      ).toBe('function');
 
       mqttClient.emit('offline');
       await disconnected;
@@ -220,7 +222,7 @@ describe('MqttBrokerService', () => {
       const promise = new Promise<string>((res) => {
         mqttService.publish.mockImplementation((topic: string) => {
           res(topic);
-          return {} as Promise<MqttPacket>;
+          return {} as ReturnType<MqttService['publish']>;
         });
       });
       void mqttBrokerService.publishQuery({} as QueryRequest);
@@ -245,7 +247,7 @@ describe('MqttBrokerService', () => {
       const promise = new Promise<string>((res) => {
         mqttService.publish.mockImplementation((topic: string) => {
           res(topic);
-          return {} as Promise<MqttPacket>;
+          return {} as ReturnType<MqttService['publish']>;
         });
       });
       void mqttBrokerService.publishPageQuery({} as QueryPagedRequest);
@@ -260,7 +262,7 @@ describe('MqttBrokerService', () => {
       const promise = new Promise<string>((res) => {
         mqttService.publish.mockImplementation((topic: string) => {
           res(topic);
-          return {} as Promise<MqttPacket>;
+          return {} as ReturnType<MqttService['publish']>;
         });
       });
       void mqttBrokerService.publishCQRSCommand({
