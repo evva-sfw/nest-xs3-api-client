@@ -89,7 +89,11 @@ export type Resource =
   | 'evva-components'
   | 'office-modes'
   | 'time-profiles'
-  | 'zones';
+  | 'zones'
+  | 'identification-media-access-data'
+  | 'calendars'
+  | 'coding-stations'
+  | 'users';
 ```
 
 ### Execute commands
