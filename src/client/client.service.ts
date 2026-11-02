@@ -15,6 +15,7 @@ import { Injectable, Logger } from '@nestjs/common';
 @Injectable()
 export class ClientService {
   private readonly logger = new Logger('ClientService');
+  private lastConnectErrorCode?: string;
 
   constructor(
     private readonly mqttBrokerService: MqttBrokerService,
@@ -23,6 +24,7 @@ export class ClientService {
   ) {}
 
   async connect(options: ClientConnectOptions): Promise<boolean> {
+    this.lastConnectErrorCode = undefined;
     try {
       await this.mqttBrokerService.connect({
         host: options.host,
@@ -32,9 +34,14 @@ export class ClientService {
         key: options.key,
         clientId: options.clientId,
         token: options.token,
+        logPayloads: options.logPayloads,
+        skipHostnameVerification: options.skipHostnameVerification,
       } as ClientConnectOptions);
-    } catch (e: any) {
-      this.logger.error(`Failed to connect to broker: ${e}`);
+    } catch (error: unknown) {
+      this.lastConnectErrorCode = this.safeConnectionErrorCode(error);
+      this.logger.error(
+        `Failed to connect to broker (${this.lastConnectErrorCode})`,
+      );
       return false;
     }
     return true;
@@ -68,5 +75,32 @@ export class ClientService {
 
   isConnected(): boolean {
     return this.mqttBrokerService.isConnected();
+  }
+
+  getLastConnectErrorCode(): string | undefined {
+    return this.lastConnectErrorCode;
+  }
+
+  private safeConnectionErrorCode(error: unknown): string {
+    if (!error || typeof error !== 'object') return 'CONNECTION_ERROR';
+
+    const candidate = error as { code?: unknown; reasonCode?: unknown };
+    if (
+      typeof candidate.reasonCode === 'number' &&
+      Number.isInteger(candidate.reasonCode) &&
+      candidate.reasonCode >= 0 &&
+      candidate.reasonCode <= 255
+    ) {
+      return `MQTT_REASON_${candidate.reasonCode}`;
+    }
+    if (
+      typeof candidate.code === 'string' &&
+      /^(?:E[A-Z0-9_]*|ERR_[A-Z0-9_]+|CERT_[A-Z0-9_]+|UNABLE_[A-Z0-9_]+|DEPTH_[A-Z0-9_]+)$/.test(
+        candidate.code,
+      )
+    ) {
+      return candidate.code;
+    }
+    return 'CONNECTION_ERROR';
   }
 }

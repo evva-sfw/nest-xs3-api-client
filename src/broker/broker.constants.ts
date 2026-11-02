@@ -8,3 +8,5 @@ export const EVENT_CQRS_RESPONSE = 'event.cqrs.response';
 export const EVENT_RB_REQUEST = 'event.rb.request';
 export const EVENT_RB_RESPONSE = 'event.rb.response';
 export const EVENT_ERROR_RESPONSE = 'event.error.response';
+export const EVENT_BROKER_DISCONNECTED = 'event.broker.disconnected';
+export const EVENT_QUERY_MALFORMED_RESPONSE = 'event.query.malformed-response';

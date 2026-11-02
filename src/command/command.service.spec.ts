@@ -6,7 +6,7 @@ import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { CommandService } from './command.service';
 import { EventEmitter2, EventEmitterModule } from '@nestjs/event-emitter';
 import { Test, TestingModule } from '@nestjs/testing';
-import { vi, it, expect, describe, afterEach, beforeEach } from "vitest";
+import { vi, it, expect, describe, afterEach, beforeEach } from 'vitest';
 
 describe('CommandService', () => {
   let moduleRef: TestingModule;
@@ -18,9 +18,11 @@ describe('CommandService', () => {
     mqttBrokerService = vi.mockObject(MqttBrokerService.prototype);
     moduleRef = await Test.createTestingModule({
       imports: [EventEmitterModule.forRoot()],
-      providers: [CommandService, { provide: MqttBrokerService, useValue: mqttBrokerService }],
-    })
-      .compile();
+      providers: [
+        CommandService,
+        { provide: MqttBrokerService, useValue: mqttBrokerService },
+      ],
+    }).compile();
 
     await moduleRef.init();
 
@@ -42,17 +44,15 @@ describe('CommandService', () => {
     };
 
     it('should throw on no connection', async () => {
-      vi
-        .spyOn(mqttBrokerService, 'isConnected')
-        .mockImplementation(() => false);
+      vi.spyOn(mqttBrokerService, 'isConnected').mockImplementation(
+        () => false,
+      );
 
       await expect(commandService.cqrs(type, data)).rejects.toThrow();
     });
 
     it('should emit EVENT_CQRS_REQUEST', async () => {
-      vi
-        .spyOn(mqttBrokerService, 'isConnected')
-        .mockImplementation(() => true);
+      vi.spyOn(mqttBrokerService, 'isConnected').mockImplementation(() => true);
 
       const asyncEvent = new Promise<boolean>((resolve) => {
         eventEmitter.on(EVENT_CQRS_REQUEST, () => {
@@ -66,9 +66,7 @@ describe('CommandService', () => {
     });
 
     it('should return command response', async () => {
-      vi
-        .spyOn(mqttBrokerService, 'isConnected')
-        .mockImplementation(() => true);
+      vi.spyOn(mqttBrokerService, 'isConnected').mockImplementation(() => true);
 
       eventEmitter.on(EVENT_CQRS_REQUEST, () => {
         eventEmitter.emit(EVENT_CQRS_RESPONSE, {
