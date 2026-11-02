@@ -111,8 +111,7 @@ export type CommandDataRelaisBoard = {
 };
 
 export type CommandDataRelaisBoardConfig =
-  | CommandDataRelaisBoardConfigSetup
-  | CommandDataRelaisBoardConfigCommand;
+  CommandDataRelaisBoardConfigSetup | CommandDataRelaisBoardConfigCommand;
 
 export type CommandDataRelaisBoardConfigSetup = {
   t: 'c';
