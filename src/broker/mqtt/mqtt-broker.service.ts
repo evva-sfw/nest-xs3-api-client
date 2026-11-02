@@ -1,5 +1,8 @@
-import { CommandDataRelaisBoard, CommandRequest } from '../../command/command';
-import {
+import type {
+  CommandDataRelaisBoard,
+  CommandRequest,
+} from '../../command/command';
+import type {
   QueryPagedRequest,
   QueryPagedResponse,
   QueryRequest,

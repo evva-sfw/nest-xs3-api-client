@@ -9,7 +9,7 @@ import {
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { HashMap } from '../common/interface';
-import {
+import type {
   Query,
   QueryPaged,
   QueryPagedRequest,
@@ -21,8 +21,8 @@ import {
   QueryResolver,
   QueryTable,
   QueryErrorResponse,
-  QueryError,
 } from './query.type';
+import { QueryError } from './query.type';
 import { Payload } from '@evva/nest-mqtt';
 import { Injectable, Logger } from '@nestjs/common';
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter';

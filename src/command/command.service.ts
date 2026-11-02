@@ -7,7 +7,7 @@ import {
 } from '../broker/broker.constants';
 import { MqttBrokerService } from '../broker/mqtt/mqtt-broker.service';
 import { HashMap } from '../common/interface';
-import {
+import type {
   CommandResolver,
   CommandResponse,
   CommandCQRS,
