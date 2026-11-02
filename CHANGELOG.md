@@ -1,3 +1,12 @@
+## [4.1.0](https://github.com/evva-sfw/nest-xs3-api-client/compare/4.0.0...4.1.0) - 2026-11-02
+
+### 🎉 Features
+
+- *(query)* Support more resources and safe query errors ([#53](https://github.com/evva-sfw/nest-xs3-api-client/pull/53))
+
+### 🧹 Chore
+
+- Add audit:sbom script to package.json ([#50](https://github.com/evva-sfw/nest-xs3-api-client/pull/50))
 ## [4.0.0](https://github.com/evva-sfw/nest-xs3-api-client/compare/3.0.14...4.0.0) - 2026-09-30
 
 ### 🚀 Continuous Integration
